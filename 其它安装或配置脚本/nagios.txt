@@ -1,0 +1,622 @@
+apr-1.4.6.tar.gz apr-util   apr-iconv     缺少perl
+一、安装nagios  
+root@nagios ~]# rpm -e `rpm -q httpd` --nodeps
+[root@nagios ~]# rpm -e `rpm -q php` --nodeps 
+1、安装编译所需软件包
+[root@nagios ~]# yum install httpd gcc make gd php-gd perl-ExtUtils-Embed.x86_64 libxml2-devel zlib zlib-devel libjpeg-devel -y  pcre*
+[root@nagios ~]# useradd nagios  passwd nagios
+2、安装监控平台apache
+[root@nagios ~]#tar -zxvf httpd-2.0.63.tar.gz
+[root@nagios ~]# cd httpd-2.0.63
+[root@nagios httpd-2.0.63]# ./configure --prefix=/usr/local/apache2
+[root@nagios httpd-2.0.63]# make && make install 
+3、安装php（因为nagios软件web管理页面属于php格式）
+[root@nagios ~]# tar -zxvf php-5.3.2.tar.gz
+[root@nagios ~]# cd php-5.3.2
+[root@nagios php-5.3.2]# ./configure --prefix=/usr/local/php --with-apxs2=/usr/local/apache/bin/apxs --with-zlib --with-jpeg-dir
+[root@nagios php-5.3.2]# make && make install 
+4、安装监控软件nagios
+[root@nagios ~]# tar -zxvf nagios-3.2.2.tar.gz
+[root@nagios ~]# cd nagios-3.2.2
+[root@nagios nagios-3.2.2]#./configure --prefix=/usr/local/nagios --with-httpd-conf=/usr/local/apache/conf   --with-command-group=nagcmd 
+[root@nagios nagios-3.2.2]#make all
+*** Compile finished ***
+
+If the main program and CGIs compiled without any errors, you
+
+can continue with installing Nagios as follows (type 'make'
+without any arguments for a list of all possible options):
+
+make install
+
+- This installs the main program, CGIs, and HTML files
+
+make install-init
+
+- This installs the init script in /etc/rc.d/init.d
+
+make install-commandmode
+
+- This installs and configures permissions on the
+directory for holding the external command file
+
+make install-config
+
+- This installs *SAMPLE* config files in /usr/local/nagios/etc
+You'll have to modify these sample files before you can
+use Nagios. Read the HTML documentation for more info
+on doing this. Pay particular attention to the docs on
+object configuration files, as they determine what/how
+things get monitored!
+
+make install-webconf
+
+- This installs the Apache config file for the Nagios
+web interface
+[root@nagios nagios-3.2.2]# make install
+[root@nagios nagios-3.2.2]# make install-init
+[root@nagios nagios-3.2.2]# make install-commandmode
+[root@nagios nagios-3.2.2]# make install-config
+[root@nagios nagios-3.2.2]#make install-webconf   
+htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin
+启动apache服务，并查看是否成功
+[root@nagios nagios-3.2.2]# /usr/local/apache2/bin/apachectl start
+5、安装nagios-plugins插件
+
+[root@nagios ~]#tar -zxvf nagios-plugins-1.4.15.tar.gz
+[root@nagios ~]# cd nagios-plugins-1.4.15
+[root@nagios nagios-plugins-1.4.15]#./configure --enable-perl-modules --enable-libtap  --with-nagios-user=nagios --with-nagios-group=nagios
+[root@nagios nagios-plugins-1.4.15]# make && make install
+[root@nagios ~]#ls /usr/local/nagios/libexec
+check_apt check_dns check_ifstatus check_nntp check_pop check_time
+check_breeze check_dummy check_imap check_nt check_procs check_udp
+check_by_ssh check_file_age check_ircd check_ntp check_real check_ups
+check_clamd check_flexlm check_load check_ntp_peer check_rpc check_users
+check_cluster check_ftp check_log check_ntp_time check_sensors check_wave
+check_dhcp check_http check_mailq check_nwstat check_smtp negate
+check_dig check_icmp check_mrtg check_oracle check_ssh urlize
+check_disk check_ide_smart check_mrtgtraf check_overcr check_swap utils.pm
+check_disk_smb check_ifoperstatus check_nagios check_ping check_tcp utils.sh
+6、插件已经安装好了，接下来配置nagios访问目录
+[root@nagios ~]#cat /usr/local/apache2/conf/nagios.conf
+# SAMPLE CONFIG SNIPPETS FOR APACHE WEB SERVER
+# Last Modified: 11-26-2005
+#
+# This file contains examples of entries that need
+# to be incorporated into your Apache web server
+# configuration file. Customize the paths, etc. as
+# needed to fit your system.
+
+ScriptAlias /nagios/cgi-bin "/usr/local/nagios/sbin"
+
+
+<Directory "/usr/local/nagios/sbin">
+
+# SSLRequireSSL
+Options ExecCGI
+AllowOverride None
+Order allow,deny
+Allow from all
+# Order deny,allow
+# Deny from all
+# Allow from 127.0.0.1
+AuthName "Nagios Access"
+AuthType Basic
+AuthUserFile /usr/local/nagios/etc/htpasswd.users
+Require valid-user
+</Directory>
+
+Alias /nagios "/usr/local/nagios/share"
+
+
+<Directory "/usr/local/nagios/share">
+
+# SSLRequireSSL
+Options None
+AllowOverride None
+Order allow,deny
+Allow from all
+# Order deny,allow
+# Deny from all
+# Allow from 127.0.0.1
+AuthName "Nagios Access"
+AuthType Basic
+AuthUserFile /usr/local/nagios/etc/htpasswd.users  （注意这里的密码文件）
+Require valid-user
+</Directory>
+这就是nagios WEB管理页面的指向
+[root@nagios ~]# cat /usr/local/apache2/conf/nagios.conf >> /usr/local/apache2/conf/httpd.conf
+修改apache服务的执行用户，允许php首页等
+[root@nagios ~]# vim /usr/local/apache2/conf/httpd.conf （约268行）
+268 User nobody
+269 Group #-1
+395 DirectoryIndex index.html index.html.var
+改成：
+268 User nagios
+269 Group nagios
+395 DirectoryIndex index.html index.php
+396 AddType application/x-httpd-php .php
+
+7、制作nagios访问权限管理密码文件
+[root@nagios ~]# /usr/local/apache2/bin/htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin
+New password:  （kevin）
+Re-type new password:  （kevin）
+Adding password for user nagiosadmin
+这里添加用户nagiosadmin用户的原因是nagios所有相关的脚本执行用户就是默认的nagiosadmin，为了不麻烦这里就只是改一下nagiosadmin的密码就行了。具体可查看配置文件/usr/local/nagios/etc/cgi.cfg
+重启apache服务
+[root@nagios ~]#/usr/local/apache2/bin/apachectl stop
+[root@nagios ~]#/usr/local/apache2/bin/apachectl start
+OK，web页面配置好了，不过没有任何东西，nagios监控配置文件还没有的。
+
+为了方便实验，安装一个nagios汉化插件吧
+[root@nagios ~]# tar -jxvf nagios-cn-3.2.3.tar.bz2
+[root@nagios ~]# cd nagios-cn-3.2.3
+[root@nagios nagios-cn-3.2.3]# ./configure
+[root@nagios nagios-cn-3.2.3]# make all
+[root@nagios nagios-cn-3.2.3]# make install
+这只是一个汉化插件而已，前面的make install-init 配置启动脚本，make install-commandmode设定相关文件及目录的权限，make install-config安装相关配置文件，以及make install-webconf配置web页面的apache接口等都已经做好。如果再次执行将会替换之前在nagios目录的所有修改，所以这里只用安装汉化的web相关页面就行了
+查看一下，汉化成功。
+二、开始一个简单的本地监控实验吧
+***涉及文件：
+nagios.cfg nagios主配置文件
+localhost.cfg 定义监控本地主机的配置文件
+templates.cfg 定义主机和服务的一个模板配置文件
+commands.cfg 定义命令配置文件，定义的命令可以被其他配置文件引用
+hosts.cfg 新建的一个配置文件，为了好管理，只定义相关主机
+services.cfg 新建的一个配置文件，为了好管理，只定义相关服务
+***涉及定义：
+主机，主机组；服务，服务组；联系人；监控命令等
+***配置文件的关系：
+定义主机、主机组、服务、服务组-->用什么命令曲实现监控目的-->定义监控时间段-->定义当主机或者服务出现问题时如何通知联系人
+
+1、添加host
+[root@nagios objects]# cp -p localhost.cfg hosts.cfg  （可以参考localhost.cfg进行配置）
+[root@nagios objects]# cat hosts.cfg  （定义主机和主机组）
+###############################################################################
+define host{
+use linux-server ; Name of host template to use
+host_name 本地监控主机
+alias nagios监控主机
+address 127.0.0.1
+}
+###############################################################################
+define hostgroup{
+hostgroup_name linux-servers ; The name of the hostgroup
+alias Linux Servers ; Long name of the group
+members * ; Comma separated list of hosts that belong to this group
+}
+###############################################################################
+2、添加service
+[root@nagios objects]# vim services.cfg  （编辑所监控的服务）
+[root@nagios objects]# cat services.cfg  （所有的命令都可以在/usr/local/nagios/etc/objects/commands.cfg下查看）
+# Define a service group.
+define servicegroup{
+servicegroup_name 系统状况检查
+alias 系统概况
+}
+
+# Define a service to "ping" the local machine
+
+define service{
+use local-service ; Name of service template to use
+host_name * ;对所有服务都启用ping检测
+service_groups 系统状况检查
+service_description PING
+check_command check_ping!100.0,20%!500.0,60%
+}
+
+
+# Define a service to check the disk space of the root partition
+# on the local machine. Warning if < 20% free, critical if
+# < 10% free space on partition.
+define service{
+use local-service ; Name of service template to use
+host_name 本地监控主机
+service_groups 系统状况检查
+service_description 根分区
+check_command check_local_disk!20%!10%!/
+}
+
+ 
+
+# Define a service to check the number of currently logged in
+
+# users on the local machine. Warning if > 20 users, critical
+# if > 50 users.
+define service{
+use local-service ; Name of service template to use
+host_name 本地监控主机
+service_groups 系统状况检查
+service_description 登录用户数
+check_command check_local_users!20!50
+}
+
+
+# Define a service to check the number of currently running procs
+# on the local machine. Warning if > 250 processes, critical if
+# > 400 users.
+define service{
+use local-service ; Name of service template to use
+host_name 本地监控主机
+service_groups 系统状况检查
+service_description 进程总数
+check_command check_local_procs!250!400!RSZDT
+}
+
+ 
+
+# Define a service to check the load on the local machine.
+
+define service{
+use local-service ; Name of service template to use
+host_name 本地监控主机
+service_groups 系统状况检查
+service_description 系统负载
+check_command check_local_load!5.0,4.0,3.0!10.0,6.0,4.0
+}
+
+ 
+
+# Define a service to check the swap usage the local machine.
+
+# Critical if less than 10% of swap is free, warning if less than 20% is free
+define service{
+use local-service ; Name of service template to use
+host_name 本地监控主机
+service_groups 系统状况检查
+service_description 交换空间利用率
+check_command check_local_swap!20!10
+}
+
+3、修改nagos配置文件
+[root@nagios objects]# vim ../nagios.cfg
+***加入这两行，并注释掉localhost.cfg
+cfg_file=/usr/local/nagios/etc/objects/hosts.cfg
+cfg_file=/usr/local/nagios/etc/objects/servicess.cfg
+#cfg_file=/usr/local/nagios/etc/objects/localhost.cfg
+4、检查配置文件的正确性
+[root@nagios objects]# /usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+.......
+Total Warnings: 0
+Total Errors: 0
+
+Things look okay - No serious problems were detected during the pre-flight check
+5、好了，看来没什么问题，重启服务生效
+[root@nagios etc]#service nagios restart
+Running configuration check...done.
+Stopping nagios: done.
+Starting nagios: done. 
+(未决表明改完配置文件后还没有检测完的服务，等一会)
+ 
+6、等待所有服务正常开启之后就来测试一下吧
+[root@nagios ~]# echo 1 > /proc/sys/net/ipv4/icmp_echo_ignore_all
+当ping不通了，会认为已经宕机。
+ 
+三、监控远程mysql主机，把禁ping功能关闭。
+1、远程主机安装mysql服务
+[root@mysql ~]# yum install mysql mysql-server -y
+[root@mysql ~]# service mysqld start
+[root@mysql ~]# /usr/bin/mysqladmin -u root password 'kevin'  （设置密码为kevin）
+[root@mysql ~]# mysql -uroot -pkevin
+mysql> create database nagiosdb;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> grant select on nagiosdb.* to nagiosdb@'192.168.0.114';
+
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> flush privileges;
+
+Query OK, 0 rows affected (0.00 sec)
+2、测试权限
+在nagios主机【192.168.0.114】上检测nagiosdb用户是否可以登录远程mysql服务
+[root@nagios ~]# /usr/local/nagios/libexec/check_mysql -H 192.168.0.121 -u nagiosdb -d nagiosdb
+Uptime: 4307 Threads: 1 Questions: 15 Slow queries: 0 Opens: 15 Flush tables: 1 Open tables: 8 Queries per second avg: 0.3
+OK，说明能够监控了，接下来将mysql主机添加进nagios中：
+3、定义hosts主机：（在/usr/local/nagios/etc/objects/hosts.cfg 中添加）
+[root@nagios ~]# cd /usr/local/nagios/etc/objects/
+[root@nagios objects]# vim hosts.cfg
+define host{
+use linux-server ; Name of host template to use
+host_name mysql主机
+alias mysql服务器
+address 192.168.0.121
+}
+4、定义服务和服务组
+[root@nagios objects]# vim services.cfg （添加下面的内容）
+define servicegroup{
+servicegroup_name mysql服务组
+alias mysql服务器
+}
+
+define service{
+
+use local-service ; Name of service template to use
+host_name mysql主机
+service_groups mysql服务组
+service_description mysql服务
+check_command check_mysql
+}
+5、定义mysql监控命令
+[root@nagios objects]# vim commands.cfg （添加check_mysql命令）
+define command{
+command_name check_mysql
+command_line $USER1$/check_mysql -H $HOSTADDRESS$ -u nagiosdb -d nagiosdb
+}
+6、重载nagios服务
+[root@nagios objects]#/usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+[root@nagios objects]# service nagios reload （这里之前使用restart好像还不能正常加载）
+ 
+
+
+  
+7、故障测试
+
+同上面“本地监控故障测试”
+
+四、pnp图表监控
+nagios对服务是即时的，可以使用pnp生成图表进行查看一段时间的监控情况
+php是一款基于php和perl的开源软件包，php可以利用rrdtool工具将nagios采集的数据绘制成相关的图表，显示主机或服务在一段时间的运行情况
+
+1、安装rrdtool
+[root@nagios ~]#tar -zxvf rrdtool-1.4.5.tar.gz
+[root@nagios ~]# cd rrdtool-1.4.5
+[root@nagios rrdtool-1.4.5]# ./configure --prefix=/usr/local/rrdtool --enable-perl-site-install
+----------------------------------------------------------------------------
+checking for xmlParseFile in -lxml2... yes
+checking libxml/parser.h usability... yes
+checking libxml/parser.h presence... yes
+checking for libxml/parser.h... yes
+configure: error: Please fix the library issues listed above and try again.
+出现错误了，解决办法：安装pango-devel
+[root@nagios rrdtool-1.4.5]#yum install pango-devel -y
+[root@nagios rrdtool-1.4.5]# ./configure --prefix=/usr/local/rrdtool --enable-perl-site-install
+[root@nagios rrdtool-1.4.5]# make && make install
+2、安装pnp
+[root@nagios ~]#tar -zxvf pnp-0.4.13.tar.gz
+[root@nagios ~]# cd pnp-0.4.13
+[root@nagios pnp-0.4.13]#./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-rrdtool=/usr/local/rrdtool/bin/rrdtool --with-perfdata-dir=/usr/local/nagios/share/perfdate
+【“--with-perfdata-dir=” rrd数据的存放位置】
+
+*** Configuration summary for pnp 0.4.13 02-19-2009 ***
+
+General Options:
+
+------------------------- -------------------
+Nagios user/group: nagios nagios
+Install directory: /usr/local/nagios
+HTML Dir: /usr/local/nagios/share/pnp
+Config Dir: /usr/local/nagios/etc/pnp
+Path to rrdtool: /usr/local/rrdtool/bin/rrdtool (Version 1.4.5)
+RRDs Perl Modules: *** NOT FOUND ***
+RRD Files stored in: /usr/local/nagios/share/perfdate
+process_perfdata.pl Logfile: /usr/local/nagios/var/perfdata.log
+Perfdata files (NPCD) stored in: /usr/local/nagios/var/spool/perfdata/
+
+[root@nagios pnp-0.4.13]#make all
+[root@nagios pnp-0.4.13]# make install
+[root@nagios pnp-0.4.13]# make install-config
+[root@nagios pnp-0.4.13]#make install-init
+【每一步完成之后都有相关文字，它提示了安装过程的相关信息】
+3、配置pnp
+[root@nagios pnp-0.4.13]# cd /usr/local/nagios/etc/pnp/pages/
+[root@nagios pages]# cp web_traffic.cfg-sample web_traffic.cfg
+[root@nagios pages]# cd ../check_commands/
+[root@nagios check_commands]# cp check_nwstat.cfg-sample check_nwstat.cfg
+[root@nagios pnp-0.4.13]#cd /usr/local/nagios/etc/pnp/
+[root@nagios pnp]# pwd
+/usr/local/nagios/etc/pnp
+[root@nagios pnp]# cp process_perfdata.cfg-sample process_perfdata.cfg
+[root@nagios pnp]# cp npcd.cfg-sample npcd.cfg
+[root@nagios pnp]# cp rra.cfg-sample rra.cfg
+[root@nagios pnp]# chown nagios.nagios * -R
+[root@nagios pnp]# vim process_perfdata.cfg
+LOG_FILE = /usr/local/nagios/var/perfdata.log
+#
+# Loglevel 0=silent 1=normal 2=debug
+#
+LOG_LEVEL = 2
+【只用将这里日志等级改为debug模式。0:silent;1:normal;2:debug】
+
+4、更改模版文件，加入pnp监控图标
+[root@nagios pnp]#vim /usr/local/nagios/etc/objects/templates.cfg
+define host{
+name hosts-pnp
+register 0
+action_url /nagios/pnp/index.php?host=$HOSTNAME$
+process_perf_data  1
+}
+
+define service{
+
+name services-pnp
+register 0
+action_url /nagios/pnp/index.php?host=$HOSTNAME$&srv=$SERVICEDESC$
+process_perf_data  1
+}
+5、开启process_performance_data命令，处理数据
+[root@nagios pnp]# vim /usr/local/nagios/etc/nagios.cfg  （修改nagios.cfg，约833、845行）
+833 process_performance_data=1
+845 host_perfdata_command=process-host-perfdata
+846 service_perfdata_command=process-service-perfdata
+
+6、定义process_performance_data的相关命令
+[root@nagios pnp]# vim /usr/local/nagios/etc/objects/commands.cfg
+define command{
+command_name process-host-perfdata
+command_line /usr/local/nagios/libexec/process_perfdata.pl
+}
+
+define command{
+
+command_name process-service-perfdata
+command_line /usr/local/nagios/libexec/process_perfdata.pl
+}
+说明：command.cfg文件的默认设置对process-host-perfdata 和 process-service-perfdata有定义，如果直接添加而不删除默认定义会发生冲突，会导致在检测配置文件时报错。
+# 'process-host-perfdata' command definition
+#define command{
+# command_name process-host-perfdata
+# command_line /usr/bin/printf "%b" "$LASTHOSTCHECK$\t$HOSTNAME$\t$HOSTSTATE$\t$HOSTATTEMPT$\t$HOSTSTATETYPE$\t$HOSTEXECUTIONTIME$\t$HOSTOUTPUT$\t$HOSTPERFDATA$\n" >> /usr/local/nagios/var/host-perfdata.out
+# }
+
+
+# 'process-service-perfdata' command definition
+#define command{
+# command_name process-service-perfdata
+# command_line /usr/bin/printf "%b" "$LASTSERVICECHECK$\t$HOSTNAME$\t$SERVICEDESC$\t$SERVICESTATE$\t$SERVICEATTEMPT$\t$SERVICESTATETYPE$\t$SERVICEEXECUTIONTIME$\t$SERVICELATENCY$\t$SERVICEOUTPUT$\t$SERVICEPERFDATA$\n" >> /usr/local/nagios/var/service-perfdata.out
+# }
+
+7、定义host文件
+[root@nagios pnp]# vim /usr/local/nagios/etc/objects/hosts.cfg
+###############################################################################
+define host{
+use linux-server,hosts-pnp ; Name of host template to use ，添加hosts-pnp
+host_name 本地监控主机
+alias nagios监控主机
+address 127.0.0.1
+}
+
+define host{
+
+use linux-server,hosts-pnp ; Name of host template to use ，添加hosts-pnp
+host_name mysql主机
+alias mysql服务器
+address 192.168.0.121
+}
+###############################################################################
+define hostgroup{
+hostgroup_name linux-servers ; The name of the hostgroup
+alias Linux Servers ; Long name of the group
+members * ; Comma separated list of hosts that belong to this group
+}
+###############################################################################
+8、同样修改/usr/local/nagios/etc/objects/services.cfg文件
+[root@nagios pnp]# sed -i 's/local-service/local-service,services-pnp/g' /usr/local/nagios/etc/objects/services.cfg
+9、检查错误并重启
+[root@nagios pnp]#/usr/local/nagios/bin/nagios -v /usr/local/nagios/etc/nagios.cfg
+[root@nagios pnp]#service nagios restart
+ 
+   
+  
+
+ 
+   
+  
+
+ 
+   
+  
+
+ 
+   
+  
+ 
+   
+  
+
+
+五、nagios下安装GD库
+1、freetype
+[root@nagios ~]# tar -zxvf freetype-2.4.8.tar.gz
+[root@nagios ~]# cd freetype-2.4.8
+[root@nagios freetype-2.4.8]# make && make install
+2、libjpeg
+[root@nagios ~]# yum install libtool -y
+[root@nagios ~]# mkdir -p /usr/local/jpeg /include
+[root@nagios ~]# mkdir -p /usr/local/jpeg /lib
+[root@nagios ~]# mkdir -p /usr/local/jpeg /bin
+[root@nagios ~]# mkdir -p /usr/local/jpeg/man/man1/
+[root@nagios ~]# tar -zxvf jpegsrc.v6b.tar.gz
+[root@nagios ~]# cd jpeg-6b/
+[root@nagios jpeg-6b]#./configure --prefix=/usr/local/jpeg –enable-shared
+[root@nagios jpeg-6b]# make install
+3、libpng
+[root@nagios ~]#tar -zxvf libpng-1.5.4.tar.gz
+[root@nagios ~]# cd libpng-1.5.4
+[root@nagios libpng-1.5.4]# ./configure –prefix=/usr/local/png
+[root@nagios libpng-1.5.4]#make && make install
+4、gd
+[root@nagios ~]# tar -zxvf gd-2.0.35.tar.gz
+[root@nagios ~]# cd gd-2.0.35
+[root@nagios gd-2.0.35]#./configure –prefix=/usr/local/gd2
+
+OK，gd相关的库已经安装完了，现在将他们整合到php中
+[root@nagios ~]# cd php-5.3.2
+[root@nagios php-5.3.2]#./configure --prefix=/usr/local/php --with-apxs2=/usr/local/apache2/bin/apxs --with-zlib --with-jpeg-dir=/usr/local/jpeg --with-png-dir=/usr/local/png --with-freetype-dir=/usr/local/freetype --with-gd --enable-magic-quotes --with-iconv --enable-mbstring=all
+[root@nagios php-5.3.2]#make && make install
+php整合gd库完成。
+
+
+接着上面的pnp的监控吧：
+重启apache2 和 nagios
+[root@nagios ~]# /usr/local/apache2/bin/apachectl -k restart
+[root@nagios ~]# service nagios restart
+
+***troubshooting：
+1、timezone时区
+Warning: date() [function.date]: It is not safe to rely on the system's timezone settings. You are *required* to use the date.timezone setting or the date_default_timezone_set() function. In case you used any of those methods and you are still getting this warning, you most likely misspelled the timezone identifier. We selected 'Asia/Chongqing' for 'CST/8.0/no DST' instead in /usr/local/nagios/share/pnp/include/function.inc.php on line 565
+这是因为php所取的时间是格林威治标准时间，所以和你当地时间会有出入。
+
+[root@nagios ~]#vim /usr/local/nagios/etc/pnp/config.php
+加入下面一行：
+date_default_timezone_set(Asia/Chongqing);
+[root@nagios ~]# /usr/local/apache2/bin/apachectl -k restart
+
+ 
+   
+  
+2、perl-Time-HiRes 未安装
+
+看看脚本/usr/local/nagios/libexec/process_perfdata.pl能否执行
+[root@nagios ~]#/usr/local/nagios/libexec/process_perfdata.pl
+Can't locate Time/HiRes.pm in @INC (@INC contains: /usr/local/lib64/perl5 /usr/local/share/perl5 /usr/lib64/perl5/vendor_perl /usr/share/perl5/vendor_perl /usr/lib64/perl5 /usr/share/perl5 .) at /usr/local/nagios/libexec/process_perfdata.pl line 32.
+BEGIN failed--compilation aborted at /usr/local/nagios/libexec/process_perfdata.pl line 32.
+[root@nagios ~]# yum install perl-Time-HiRes -y 
+ 
+   
+ 3、php5.3之后eregi() 被preg_match()取代
+ 
+
+
+出现下面的问题了
+Deprecated: Assigning the return value of new by reference is deprecated in /usr/local/nagios/share/pnp/include/function.inc.php on line 1026
+
+Deprecated: Function eregi() is deprecated in /usr/local/nagios/share/pnp/include/function.inc.php on line 1502
+问题的根源是php中有两种正则表示法，一个是posix，一个是perl，php6打算废除posix的正则表示法，所以后来就加了个preg_match。此问题解决办法可以在ereg前面加过滤符，将ereg()变成@ereg()。但是这种问题还是没有从根源上解决，php5.2版本之前ereg使用正常，在5.3之后，就要用preg_match来代替ereg。注意，posix和perl的很明显的区别就是是否加斜杠，后者不能少了“/”。所以改法为：
+[root@nagios ~]#vim /usr/local/nagios/share/pnp/include/function.inc.php
+1502 if($level == 2 && $type == "complete" && eregi("^NAGIOS_",$tag)){
+改为
+1502 if($level == 2 && $type == "complete" && preg_match("/^NAGIOS_/",$tag)){
+具体可以参考：http://www.php.net/manual/en/migration53.deprecated.php
+
+[root@nagios ~]# vim /usr/local/nagios/libexec/process_perfdata.pl
+在最前面添加下面一行：
+use lib qw($prefix/lib/perl)
+ 
+   
+  
+安装了一天，出现过很多问题。先记录下请高手指教指教。
+
+QQ345258361
+   
+  
+
+ 
+   
+  
+
+ 
+   
+  
+
+ 
+   
+  
+
+ 
+   
+  
+
+ 
+   
+   

@@ -1,0 +1,18 @@
+yum install httpd  gcc  glibc glibc-common  gd gd-devel -y
+useradd nagios
+passwd nagios
+/usr/sbin/groupadd nagcmd
+/usr/sbin/usermod -G nagcmd nagios
+/usr/sbin/usermod -G nagcmd apache
+wget http://osdn.dl.sourceforge.net/sourceforge/nagios/nagios-3.0rc1.tar.gz
+wget http://osdn.dl.sourceforge.net/sourceforge/nagiosplug/nagios-plugins-1.4.11.tar.gz
+./configure --with-command-group=nagcmd
+make install
+make install-init
+make install-config
+make install-commandmode
+用你擅长的编辑器软件来编辑这个/usr/local/nagios/etc/objects/contacts.cfg配置文件，更改email地址nagiosadmin的联系人定义信息中的EMail信息为你的EMail信息以接收报警内容
+make install-webconf
+htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin     admin
+nagios-plugin 
+./configure --with-nagios-user=nagios --with-nagios-group=nagios

@@ -1,0 +1,130 @@
+
+
+
+
+
+yum install -y  mysql mysql-server   mysql-server   httpd  php     php-gd php-imap php-ldap php-odbc php-pear php-xml php-xmlrpc  php-mbstring
+
+
+1. yum  -y install httpd php  php*   mysql mysql-server net-snmp rrd-tool 
+ 
+2. Configure PHP
+
+Please ensure, that PHP support is either builtin or installed for the following PHP extension modules:
+
+    mysql (For configuration, see note below)
+
+    SNMP (For configuration, see note below)
+
+    XML
+
+    Session
+
+    Sockets
+
+    LDAP (Required only when using LDAP authentication)
+
+    GD (Required only for some Plugins) 
+
+You may run the following command to get the list of all available PHP modules
+
+php -m
+
+Please verify, that the modules are installed and configured correctly. There are several ways to do so, please consult PHP configuration instructions for a complete description.
+
+We will continue using the most recommended way of configuring php extension modules. Please find the file /etc/php.ini and make the following changes to it:
+
+extension_dir = /etc/php.d   /usr/lib64/php/modules/
+ 
+This will enable PHP to find more configuration directives in that very directory. Other distros point to /usr/lib/php/modules instead. In each case, you should locate e.g. mysql.so in that directory.
+
+Activate the MySQL extension via /etc/php.d/mysql.ini
+
+; Enable mysql extension module
+extension=mysql.so
+
+Activate the SNMP extension via /etc/php.d/snmp.ini
+
+; Enable snmp extension module
+extension=snmp.so
+
+If using PHP 4.3.5 or less include the following line. If using 4.3.6 or greater, you should remove this line if present.
+
+session.save_path=/tmp
+
+If you want to allow template importing, uncomment the following line:
+
+file_uploads = On
+3 	If you are using Apache 1.3.x, installation of PHP 5 is not recommended.
+
+Please find the file /etc/httpd/conf/httpd.conf or equivalent and make the following changes to it:
+
+# Load config files from the config directory "/etc/httpd/conf.d".
+Include conf.d/*.conf
+
+Now, please locate the PHP configuration file at /etc/httpd/conf.d/php.conf
+
+If using PHP 5, then add the following lines.
+
+# PHP is an HTML-embedded scripting language which attempts to make it
+# easy for developers to write dynamically generated webpages.
+LoadModule php5_module modules/libphp5.so
+#
+# Cause the PHP interpreter to handle files with a .php extension.
+AddHandler php5-script .php
+AddType text/html .php
+#
+# Add index.php to the list of files that will be served as directory
+# indexes.
+DirectoryIndex index.php
+4 set a password for the root user
+
+shell> mysqladmin --user=root password somepassword
+shell> mysqladmin --user=root --password reload
+
+5 Install and Configure Cacti
+     Extract the distribution tarball.
+
+    shell> tar xzvf cacti-version.tar.gz
+
+    Create the MySQL database:
+
+    shell> mysqladmin --user=root create cacti
+
+    Import the default cacti database:
+
+    shell> mysql cacti < cacti.sql
+
+    Optional: Create a MySQL username and password for Cacti.
+
+    shell> mysql --user=root mysql
+    mysql> GRANT ALL ON cacti.* TO root@localhost IDENTIFIED BY 'centos';
+    mysql> flush privileges;
+
+    Edit include/config.php and specify the database type, name, host, user and password for your Cacti configuration.
+
+    $database_type = "mysql";
+    $database_default = "cacti";
+    $database_hostname = "localhost";
+    $database_username = "cactiuser";
+    $database_password = "cacti";
+
+    Set the appropriate permissions on cacti's directories for graph/log generation. You should execute these commands from inside cacti's directory to change the      permissions.
+  
+    shell> chown -R cactiuser rra/ log/
+
+    (Enter a valid username for cactiuser, this user will also be used in the next step for data gathering.)
+
+    Add a line to your /etc/crontab file similar to:
+
+    */5 * * * * root  php /var/www/html/cacti/poller.php > /dev/null 2>&1
+
+    Replace cactiuser with the valid user specified in the previous step.
+
+    Replace /var/www/html/cacti/ with your full Cacti path.
+
+    Point your web browser to:
+
+        http://your-server/cacti/ 
+
+    Log in the with a username/password of admin. You will be required to change this password immediately. Make sure to fill in all of the path variables carefully and correctly on the following screen. 

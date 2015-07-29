@@ -1,0 +1,165 @@
+unicode XML
+脚本编程语言awk Perl Python Ruby Shell
+cygwin是一个在windows平台上运行的unix模拟环境 Ada 
+bind-utils （dig）
+$ cat > nuusers 建立文件，使用cat复制终端的输入
+$who| wc -l      程序的内容
+^D              Ctrl-D 表示end-of-file
+$ ./nusers 
+
+#! /bin/sh
+长度 63到1024  尽量不要超过63
+脚本是否具有可移植性取决于是否拥有完整的路径名称
+别再选型之后放置任何空白，因为空白也会跟着选项一起传递给被引用的程序
+知道解释器的完整路径名
+$ 后台执行
+shell 识别三种基本命令 内建命令  Shell函数 外部命令
+
+内建命令 Shell本身执行的命令 
+Shell函数功能健全的一系列程序代码 以Shell语言写成
+外部命令就是由Shell的副本（新的进程）所执行的命令，基本的过程如下：
+a.建立一个新的进程。此进程即为Shell的一个副本
+b.在新的进程里，在PATH变量内所列出的目录中，寻找特定的命令。
+/bin:/usr/bin/:/usr/X11R6/bin:/usr/local/bin 为PATH变量典型的默认值
+c.在新的进程里，以所找到的新程序取代执行中的Shell程序并执行。
+d.程序完成后，最初的Shell会接着从终端读取的下一条命令，或执行脚本里的下一条命令
+变量赋值 单行可以进行多次赋值 值中包含空格时使用引号  将几个变量连接时，需要引号
+echo 转义序列
+ \a 警示字符，通常是ASCII的BEL
+ \b 退格 （Backspace）
+ \c 输入忽略最后的换行字符 这个参数之后的任何字符，包括接下来的参数，都会被忽略掉（不打印）
+ \f 清除屏幕 （Formfeed）
+ \n 换行 （Newline）
+
+ \r回车
+ \t水平制表符
+ \v垂直制表符
+ \\ 反斜杠
+ \0ddd将字符表示成1到3位的八进制数值
+printif 模仿C library printif（）  $printif "Hello world \n"
+standard input standard output standard error
+< 改变标准输入
+>改变标准输出
+>> 附加到文件
+tr [optinos]  source-char-list replace-char-list
+-c  取source-char-list 的反义
+-C 与-c 相似，但所处理的是字符（可能是包含多个字节的宽字符）
+-d 自标准输入删除source-char-list里所列的字符
+-s浓缩重复的字符
+/dev/null (bit bucket)
+if grep pattern myfile > /dev/null
+then 
+ ... 找到模式时
+else
+ ... 找不到模式时
+fi
+相对地，读取/dev/null 则会立即返回文件解释符号（end-of-file）
+/dev/tty
+当程序打开此文件时，unix会自动将它重定向到一个终端[一个实体的控制台（console）或串行端口（serial port），也可能是一个通过网络与窗口登录的伪终端（pseudoterminal）再与程序结合。这在程序必须读取人工输入时比较有用。 此外，用它来产生错误信息也很方便
+stty   man stty
+位置参数 Shell脚本的命令行参数 在Shell函数里，它们同时也可以是函数的参数 超过9 用大括号扩起来
+恶臭 tenth arg is ${10}
+# 注释
+set -x 执行跟踪功能打开  set +x 关闭
+gencat msgfmt
+locale 环境变量 
+LANG 未设置任何LC_XXX变量时所使用的值
+LC_ALL 用来覆盖掉所有其他LC_XXX
+LC_COLLATE使用所指定地区的排序规则
+LC_CTYPE使用所指定地区的字符集
+LC_MESSAGES 使用所指定地区的响应与信息，仅POSIX
+LC_MONETARY 使用指定地区的货币格式
+LC_NUMERIC 使用指定地区的数字格式
+LC_TIME 使用指定地区的日期与时间格式
+ LC_ALL=zh_CN ls --help
+GNU gettext 包 	或许支持Shell脚本的国际化与本地化
+.profile $PATH 变量
+locale -a 列出所有locale名称
+sed  stream editor 
+特殊字符称为元字符 （metacharacter） meta
+\  通常关闭后续字符意义 。有时则是相反打开后续字符的特殊意义 如\(...\)与\{...\}
+. 匹配单个字符，但null除外  独立程序也可以不允许匹配换行字符
+* 匹配它之前的任何数目（或没有）的单个字符。 .* 匹配任一字符的任意长度  *若置于正则表达式的第一个字符，不具有任何特殊意义
+^ 匹配紧接着的正则表达式，在行或字符串的起始处。
+$ 匹配前面的正则表达式，在字符串或行结尾处
+[...] 方括号表达式（bracket expression）匹配方括号内的任一字符。
+\{n,m}BRE
+\( \)BRE
+\n BRE 
+(N,M)ERE
++ ERE
+? ERE
+POSIX 字符集
+[:alnum:] 数字字符
+[:alpha:] 字母字符
+[:blank:] 空格（space）与定位（tab）字符
+[:cntrl:]控制字符
+[:digit:]数字字符
+[:graph:]非空格字符
+[:lower:]小写字符
+[:print:]可显示字符
+[:punct:]标点符号
+[:space:]空白字符
+[:upper:]大写字符
+[:xdigit:]十六进制数字
+区间表达式（interval expression）
+\{n\}  前置正则表达式所得的结果重现N次
+\{n,\} 前置正则表达式所得的结果重现至少N次
+\{n,m\} 前缀正则表达式所得的结果重新n至m次 
+n与m的值必须介于0至RE_DUP_MAX (含)之间 RE_DUP_MAX 是POSIX定义的符号型常数，可以通过getconf命令取得
+文本匹配锚点 脱字符号 （^）货币符号（$）
+BRE 运算符优先级，由高至底
+[..] [==] [::] 用于字符排序的方括号
+\metacharacter 转义的meta字符
+[] 方括号表达式
+\( \) \digit 子表达式与后向引用
+* \{ \}前置单个字符重现的正则表达式
+无符号（no symbol） 连续
+^ $ 锚点 （Anchors）
+ERE (Extended Regular Expressions)
+cut -d : -f 6 /etc/passwd 取出用户登陆根目录
+cut -c list [file ... ]
+cut -f list [-d  delim ] [file ...]
+从输入文件中选择一个或多个字段或者一组字符，配合管道（pipeline），可再做进一步处理
+-c list  以字符为主，执行剪下操作。list 为字符编号或一段范围的列表（以逗点隔开），如 1,3  ， 5-12 ， 42 。
+-d delim  通过-f选项，使用delim作为界定符 。 默认的定界符为制表字符（Tab）
+-f list  以字段为主，作剪下的操作。list为字段编号或一段范围的列表（以逗点隔开）。
+join   将多个文件结合在一起 
+join [options ...]  file1 file2 
+awk 'program' [file...]
+awk读取命令行上所指定的各个文件（若无，则为标准输入），一次读取一条记录（行）。
+pattern {action}
+pattern {action}
+ awk '{print $1 }' passwd
+ awk 'NF > 0 {print $0}'  passwd
+ awk 'NF > 0' passwd   (未指定action，则默认为打印)  0表示整段记录
+-F 修改字段分割符  -F 选项自动设置FS变量
+awk -F: 'NF > 0{print $1,$5}' passwd
+设置OFS变量 改变输出分隔符  命令行-v
+显示选定的字段  print 没有任何参数，等同于print $0 显示整条记录
+awk -F: '{ print "User", $1 ,"is really ",$5}' /etc/passwd
+Shell printf语法（与C类似）
+awk -F: '{ printf "User %s is really %s\n",$1,$5 }' /etc/passwd
+awk print 自动提供最后的换行字符 printf 用户通过\n 转义序列 自己提供
+print 参数间用逗点隔开，否则 awk 将连接相邻的所有值
+awk -F: '{ print "User" ,$1 , "is really" $5 }' /etc/passwd
+BEGIN END 提供awk 程序 起始（startup code） 清除 （cleanup code）
+从最左边开始，扩展至最长（longset leftmost） 匹配的文本在何处匹配以及匹配扩展到多长
+可将文本每一行视为一条单个记录，而在行内的数据则包括字段 字段可以被空白或是特效定界分隔
+文本处理工具
+sort [options][file(s)] 
+将输入行按照键值字段与数据类型选项以及locale排序
+sort 主要选项 
+-b 忽略开头的kongbai
+ -c 检查输入是否以正确地排序，但退出码（exit code）为非零值，则不会有任何输出
+ -d 字典顺序：仅文字数字与空白才有意义  
+-g 一般数值：以浮点数字类型比较字段。这个 选项的运作有点类似-n 差别 这个选项的数字可能有小数点及指数
+-f 将混用的字母看作相同大小写 ，不管大小写的方式排序
+-i 忽略午饭打印的字符
+-k 定义排序键值字段
+-n 整数类型比较字段
+-o outfile 将输出写到指定的文件，而非标准输出。如果该文件为输入文件之一，则sort在进行排序与写到输出文件之前，会先将它复制到一个临时的文件
+-r 倒置排序的顺序为由大到小（descending），而非默认的由小到大（ascending）
+-t char 使用单个字符char作为默认的字段分割字符，取代默认的空白字符。
+-u 只有唯一的记录：丢弃所有具相同键值的记录，只留其中的第一条。只有兼职字段是重要的，也就是说：被丢弃的记录其他部分可能是不同值
+行为模式 sort会读取指定的文件，如果未给定文件，则读取标准输入，再将排序号的数据写至标准输出

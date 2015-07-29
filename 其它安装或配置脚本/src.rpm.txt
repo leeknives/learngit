@@ -1,0 +1,17 @@
+方法一：
+1.　执行rpm -i your-package.src.rpm
+2.　cd /usr/src/redhat/SPECS
+3.　rpmbuild -bp your-package.specs 一个和你的软件包同名的specs文件
+4.　cd /usr/src/redhat/BUILD/your-package/ 一个和你的软件包同名的目录
+5.　./configure 这一步和编译普通的源码软件一样，可以加上参数
+6.　make
+7.　make install
+
+方法二:
+1.　执行rpm -i you-package.src.rpm
+2.　cd /usr/src/redhat/SPECS (前两步和方法一相同)
+3.　rpmbuild -bb your-package.specs 一个和你的软件包同名的specs文件
+
+这时，在/usr/src/redhat/RPM/i386/ （根据具体包的不同，也可能是i686,noarch等等) 在这个目录下，有一个新的rpm包，这个是编译好的二进制文件。执行：
+
+rpm -i new-package.rpm即可安装完成。 

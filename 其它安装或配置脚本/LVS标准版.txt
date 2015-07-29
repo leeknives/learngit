@@ -1,0 +1,114 @@
+[root@lochel0 ~]# lsmod | grep ip_vs //查看有没有打开
+
+[root@lochel0 ~]# yum list installed | grep ipvsadm  //查看IPVS包
+
+[root@lochel0 ~]# yum install -y ipvsadm // yum安装 ipvsadm
+
+[root@lochel0 ~]# modprode ip_vs  //打开IPVS服务
+
+[root@lochel0 ~]# ipvsadm -A -t 192.168.10.60:80 -s rr  //主节点
+
+[root@lochel0 ~]# ipvsadm -Ln //查看
+
+[root@lochel0 ~]# ipvsadm -a -t 192.168.10.60:80 -r 192.168.100.65:80 -m -w 1    //从节点  1
+
+[root@lochel0 ~]# ipvsadm -a -t 192.168.10.60:80 -r 192.168.100.121:80 -m -w 1   //从节点  2
+
+[root@lochel0 ~]# ipvsadm -Ln                         // 配置好后可以看到完整信息
+IP Virtual Server version 1.2.1 (size=4096)
+Prot LocalAddress:Port Scheduler Flags
+  -> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+在  2台 web 服务器上 设置了虚拟网关：
+
+[root@localhost html]# vi /etc/sysconfig/network
+添加以下内容：
+
+GATEWAY=192.168.100.60
+
+/////////////////////////////////////脚本
+
+#!/bin/sh
+# description: Start LVS of Director server
+VIP=192.168.100.60
+RIP1=192.168.60.65
+RIP2=192.168.60.121
+#./etc/rc.d/init.d/functions
+case "$1" in
+start)
+echo " start LVS of Director Server"
+# set the Virtual IP Address and sysctl parameter
+/sbin/ifconfig eth0:0 $VIP broadcast $VIP netmask 255.255.255.255 up
+echo "1" >/proc/sys/net/ipv4/ip_forward
+#Clear IPVS table
+/sbin/ipvsadm -C
+#set LVS
+/sbin/ipvsadm -A -t $VIP:80 -s rr -p 600
+/sbin/ipvsadm -a -t $VIP:80 -r $RIP1:80 -g
+/sbin/ipvsadm -a -t $VIP:80 -r $RIP2:80 -g
+#Run LVS
+/sbin/ipvsadm
+;;
+stop)
+echo "close LVS Directorserver"
+echo "0" >/proc/sys/net/ipv4/ip_forward
+/sbin/ipvsadm -C
+/sbin/ifconfig eth0:0 down
+;;
+*)
+echo "Usage: $0 {start|stop}"
+exit 1
+esac
+
+
+////////////////////////////////////////////////////LVS——DR模式////////////////////////////////////////////////////////////
+
+
+首先在 主机上虚拟出一块虚拟网卡 ： ifconfig eth0:0 192.168.100.60/24 up
+                    添加  主节点： ipvsadm -A -t 192.168.100.133:80 -s rr
+		   添加   子节点： ipvsadm -a -t 192.168.100.133:80 -r 192.168.100.65:80 -g
+
+
+然后在子节点机器上操作：           ifconfig lo:0 192.168.100.133/32 up        //注意IP
+	              添加路由：   route add -host 192.168.100.133 dev lo:0
+                      查看路由：   route -n
+		   关掉下面的
+		                echo "1" > /proc/sys/net/ipv4/conf/lo/arp_ignore
+  				echo "2" > /proc/sys/net/ipv4/conf/lo/arp_announce
+  				echo "1" > /proc/sys/net/ipv4/conf/all/arp_ignore
+  				echo "2" > /proc/sys/net/ipv4/conf/all/arp_announce
+
+那么就可以通过访问 192.168.100.133  来访问  65机器上的web服务
+
+
+脚本：
+
+
+#!/bin/bash
+VIP=192.168.100.133   //此IP 为 主节点 虚拟的
+/sbin/ifconfig lo:0 $VIP broadcast $VIP netmask 255.255.255.255 up
+/sbin/route add -host $VIP dev lo:0
+echo "1" >/proc/sys/net/ipv4/conf/lo/arp_ignore
+echo "2" >/proc/sys/net/ipv4/conf/lo/arp_announce
+echo "1" >/proc/sys/net/ipv4/conf/all/arp_ignore
+echo "2" >/proc/sys/net/ipv4/conf/all/arp_announce
+sysctl -p
+#end
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,40 @@
+maven创建web项目：
+	mvn archetype:create -DarchetypeGroupId=org.apache.maven.archetypes -DarchetypeArtifactId=maven-archetype-webapp -DgroupId=com.mycompany.app -DartifactId=my-webapp
+maven创建普通项目：
+	mvn archetype:create -DarchetypeGroupId=org.apache.maven.archetypes -DgroupId=com.mycompany.app -DartifactId=my-app
+mvn archetype:create -DgroupId=com.weike -DartifactId=weike-login2-web -DarchetypeGroupId=org.apache.struts -DarchetypeArtifactId=struts2-archetype-starter -DarchetypeVersion=2.0.11.2-SNAPSHOT -DremoteRepositories=http://people.apache.org/repo/m2-snapshot-repository
+mvn eclipse:eclipse  将应用转化为eclipse项目
+mvn validate 验证工程是否正确，所有需要的资源是否可用
+mvn compile  编译项目的源代码
+mvn test-compile 编译项目的测试代码
+mvn test         使用已编译的测试代码，测试已编译的源代码
+mvn package      将已编译的源代码打包
+mvn install      将包安装在本地的repository中
+mvn deploy       在整合或者发布环境下，将最终版本的包拷贝到远程
+mvn archetype:generate
+
+mvn clean eclipse:clean  引入的jar包不在eclipse中显示 
+仓库搜素服务：
+http://repository.sonatype.org
+http://www.jarvana.com/jarvana
+http://www.mvnbrowser.com
+http://www.mvnrepository.com
+
+安装到本地库
+mvn install:install-file -DgroupId=com.bea.xml -DartifactId=jsr173-ri -Dversion=1.0 
+    -Dpackaging=jar -Dfile=[path to file] 
+mvn install:install-file -DgroupId=java.memcached -DartifactId=java.memcached -Dversion=2.6.3 
+    -Dpackaging=jar -Dfile=e:\java_memcached-release_2.6.3\java_memcached-release_2.6.3.jar
+安装到私服 
+mvn deploy:deploy-file -DgroupId=com.bea.xml -DartifactId=jsr173-ri -Dversion=1.0 -Dpackaging=jar 
+    -Dfile=[path to file] -Durl=[url] -DrepositoryId=[id]
+mvn deploy:deploy-file -DgroupId=java.memcached -DartifactId=java.memcached -Dversion=2.6.3 
+    -Dpackaging=jar -Dfile=e:\java_memcached-release_2.6.3\java_memcached-release_2.6.3.jar
+    -Durl=http://yourlocalrepository:8888/archiva/repository/internal
+    -DrepositoryId=internal
+
+mvn install:install-file -DgroupId=com.weike -DartifactId=weike-util -Dversion=1.0-SNAPSHOT -Dpackaging=jar -Dfile=e:\weike-util-1.0-SNAPSHOT.jar
+mvn install:install-file -DgroupId=org.springframework -DartifactId=org.springframework.transaction -Dversion=3.1.1.RELEASE -Dpackaging=jar -Dfile=e:\org.springframework.transaction-3.1.1.RELEASE.jar
+
+
+

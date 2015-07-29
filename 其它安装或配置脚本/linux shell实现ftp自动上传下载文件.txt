@@ -1,0 +1,50 @@
+FTP自动登录批量下载文件
+
+　　从ftp服务器192.168.1.60 上的/home/data 到本地的/home/databackup
+
+　　#!/bin/bash
+
+　　ftp -v -n 192.168.1.60<<EOF
+
+　　user oracle 123456
+
+　　binary
+
+　　cd /home/data
+
+　　lcd /home/databackup
+
+　　prompt
+
+　　mget *
+
+　　close
+
+　　byeEOF
+
+　　FTP自动登录批量上传文件
+
+　　将本地文件夹/home/databackup里的文件上传到ftp服务器192.168.1.60 的/home/data 目前
+
+　　#!/bin/bash
+
+　　ftp -v -n 192.168.1.60 << EOF
+
+　　user oracle 123456
+
+　　binary
+
+　　hash
+
+　　cd /home/data
+
+　　lcd /home/databackup
+
+　　prompt
+
+　　mput *
+
+　　bye
+
+　　EOF
+    

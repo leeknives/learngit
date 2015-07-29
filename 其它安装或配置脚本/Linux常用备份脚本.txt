@@ -1,0 +1,62 @@
+#!/bin/bash
+#指定运行的脚本shell
+#运行脚本要给用户执行权限
+bakdir=/backup
+month=`date +%m`
+day=`date +%d`
+year=`date +%Y`
+hour=`date +%k`
+min=`date +%M`
+dirname=$year-$month-$day-$hour-$min
+mkdir $bakdir/$dirname
+mkdir $bakdir/$dirname/conf
+mkdir $bakdir/$dirname/web
+mkdir $bakdir/$dirname/db
+#备份conf，检测通过
+gzupload=upload.tgz
+cp /opt/apache2/conf/httpd.conf $bakdir/$dirname/conf/httpd.conf
+cd /opt/apache2/htdocs/php
+tar -zcvf $bakdir/$dirname/web/$gzupload ./upload
+#远程拷贝的目录要有可写权限
+scp -r /backup/$dirname root@10.1.1.178:/backup
+备份数据库：
+#!/bin/bash
+#指定运行的脚本shell
+#运行脚本要给用户执行权限
+bakdir=/backup
+month=`date +%m`
+day=`date +%d`
+year=`date +%Y`
+hour=`date +%k`
+min=`date +%M`
+dirname=$year-$month-$day-$hour-$min
+mkdir $bakdir/$dirname
+mkdir $bakdir/$dirname/conf
+mkdir $bakdir/$dirname/web
+mkdir $bakdir/$dirname/db
+#热备份数据库
+cp /opt/mysql/my.cnf $bakdir/$dirname/db/my.cnf
+cd /opt/mysql
+mysqldump --opt -u zhy -p --password=1986 test>$bakdir/$dirname/db/test.sql
+mysqldump --opt -u zhy -p --password=1986 phpwind>$bakdir/$dirname/db/phpwind.sql
+#远程拷贝的目录要有可写权限
+scp -r /backup/$dirname 
+root@10.1.1.178:/backup
+本脚本是mysqldump --opt的补充:
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/bin:/bin
+# The Directory of Backup
+BACKDIR=/usr/mysql_backup
+# The Password of MySQL
+ROOTPASS=password
+# Remake the Directory of Backup
+rm -rf $BACKDIR
+mkdir -p $BACKDIR
+# Get the Name of Database
+DBLIST=`ls -p /var/lib/mysql | grep / | tr -d /`
+# Backup with Database
+for dbname in $DBLIST
+do
+mysqlhotcopy $dbname -u root -p $ROOTPASS $BACKDIR | logger -t
+mysqlhotcopy
+done

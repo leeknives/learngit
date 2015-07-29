@@ -1,0 +1,17 @@
+mysql －u root password 'password'
+mysql> create datavase mantis;
+ 创建一个帐号为mantis 密码为mantisps的帐户，并且给他权限来读写数据库：
+ mysql> insert into mysql.user(Host,User,Password) values("localhost","mantis",password("mantis"));
+
+mysql> flush privileges;
+Requirements
+grant all PRIVILEGES on *.* to mantis@'localhost' identified by 'mantis';
+
+flush privileges;
+
+
+
+grant all PRIVILEGES on *.* to root@'192.168.10.0/255.255.255.0' identified by 'centos';
+flush privileges;
+修改主机名   vi /etc/hosts 
+            vi /etc/sysconfig/network

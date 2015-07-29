@@ -1,0 +1,54 @@
+1    yum install gcc   make  gcc-c++
+2   yum install perl* 
+
+wget http://subversion.tigris.org/downloads/subversion-1.6.1.tar.gz
+wget http://subversion.tigris.org/downloads/subversion-deps-1.6.1.tar.gz
+  tar zxvf subversion-1.6.1.tar.gz  
+    tar zxvf subversion-deps-1.6.1.tar.gz  
+    cd subversion-1.6.1/  
+    ./configure --prefix=/usr/local/svn  
+    make && make install 
+版本库url 
+file://      直接版本访问
+http://      通过配置subversion的Apache服务器的WebDAV协议
+https：//    与http://相似，但是包括SSL加密
+svn://       通过svnserve服务自定义的协议
+svn+ssh://   与svn://相似，但通过SSH封装
+svn   update    svn commit    svn revision   修订号 针对整个目录树
+Subversion可以告诉我们工作文件是处于如下四种状态的那一种：
+ 未修改且是当前的
+
+    文件在工作目录里没有修改，在工作修订版本之后没有修改提交到版本库。svn commit操作不做任何事情，svn update不做任何事情。
+本地已修改且是当前的
+svn  cleanup 清除锁定
+
+    在工作目录已经修改，从基本修订版本之后没有修改提交到版本库。本地修改没有提交，因此svn commit会成功提交，svn update不做任何事情。
+未修改且不是当前的了
+
+    这个文件在工作目录没有修改，但在版本库中已经修改了。这个文件最终将更新到最新版本，成为当时的公共修订版本。svn commit不做任何事情，svn update将会取得最新的版本到工作拷贝。
+本地已修改且不是最新的
+    这个文件在工作目录和版本库都得到修改。一个svn commit将会失败，这个文件必须首先更新，svn update命令会合并公共和本地修改，如果Subversion不可以自动完成，将会让用户解决冲突。
+svnserve.conf    password-db = password
+password   [users]    username = password 
+c:\Documents and Settings\[登陆操作系统用户名]\Application Data \subversion 保存登录信息的auth目录
+HEAD /index.html HTTP/1.1
+Host:www.sohu.com
+apache    认证
+<Location /repos>
+        DAV svn
+        SVNParentPath /var/www/svn/repos
+        AuthzSVNAccessFile /etc/svn-acl-conf
+        AuthType Basic
+        AuthName "Subversion repos"
+        AuthUserFile /etc/svn-auth-conf
+        Require valid-user
+</Location>
+<LimitExcept GET PROPFIND OPTIONS REPORT> Require valid-user </LimitExcept> 匿名只读认证
+AuthzSVNAccessFile E:/passwd/policy    [helloworld:/] hello=rw google=r Microsoft=
+[groups] developers=hello,google testers=microsoft  [helloworld:/] @developers=rw @testers= [subsvn:/] @developers=rw @testers=rw
+svnadmin hotcopy /var/www/html/weike-repos  /root/Desktop/backup
+Eclipse svn插件 subclipse	
+svn update
+修改完冲突之后resolve ，否则该文件永远无法修改
+删除.svn 右键svn项目 Team→Export  导出一个干净的项目
+分支branching 标签 tagging

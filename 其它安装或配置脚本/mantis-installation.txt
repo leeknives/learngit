@@ -1,0 +1,50 @@
+These tasks cover the download and deployment of MantisBT, and should be performed
+prior to any new installation or upgrade.
+1. Download MantisBT
+2. Transfer the downloaded file to your webserver
+This can be done using whatever method you like best (ftp, scp, etc). You will need
+to telnet/ssh into the server machine for the next steps.
+3. Extract the release
+It is highly recommended to maintain a separate directory for each release. This not
+only avoids mismatch between versions, (files may have been added or removed) but
+also provides an easy path to downgrade your installation, should you need to.
+The usual command is (1 step):
+tar -xzf filename.tar.gz
+OR (2 steps):
+gunzip filename.tar.gz
+tar -xf filename.tar
+Other file archiving tools such as 7-Zip5 should also be able to handle decompression
+of the archive.
+The extraction process should create a new directory like mantisbt-1.2.x
+4. Rename the directory
+For new installations, you may want to rename the directory just created to something
+simpler, e.g. mantisbt
+mv mantisbt-1.2.x mantisbt
+New Installation
+
+
+1.  yum install mysql mysql-server   mysql-server dependencies  perl-DBD-MySQL     perl-DBI
+2.  yum install  httpd 
+3.  yum install  php    dependencies   php-common  php-cli  
+4.  yum install  php-mysql        dependencies    php-pdo
+5   yum install php-mysql php-gd php-imap php-ldap php-odbc php-pear php-xml php-xmlrpc  
+6   mysql －uroot －p
+7   创建一个帐号为mantis 密码为mantisps的帐户，并且给他权限来读写数据库：
+8     mysql> insert into mysql.user(Host,User,Password) values("localhost","mantis",password      ("mantis"));
+9    mysql> flush privileges;
+10    grant all PRIVILEGES on *.* to mantis@'localhost' identified by 'mantis';   flush       privileges;
+11     cp config_inc.php.sample config_inc.php
+       # --- Database Configuration ---
+$g_hostname      = 'localhost';
+$g_db_username   = 'mantis';
+$g_db_password   = 'mantisps';
+$g_database_name = 'mantis';
+$g_db_type       = 'mysql';
+ 在下面的选现中username和password都填入上面配置的mantis和mantis
+    点击install\upgrade开始安装
+在http://localhost/mantis就可以访问了，使用
+user：administrator
+password：root
+分享到：        
+
+

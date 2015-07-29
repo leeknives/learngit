@@ -1,0 +1,148 @@
+简述：
+       近些年来，Nginx以其自身处理的并发数高，内存消耗小，配置简单，开源免费，支持Rewrite等一系列的有点成为网站Web端的首选软件，同时，Nginx最大的特点是他自身的负载均衡的功能，可以通过定义Upstream地址池，通过相应的分发原则实现网站访问的首选利器，现在的网站最基本的要求就是要稳定高效，这里介绍的Keepalived+Nginx的架构方式就是结合这个来实现的，这里我们采用两台Nginx服务器作为前端，一主一从，Keepalived实现状态监测，保证Nginx正常对外提供服务，即主Nginx服务进程死掉之后，keepalived能够通过其自身的检测机制将网站的访问切换到从Nginx上来。
+系统环境：CentOS 5.5
+开源软件：nginx-1.2.1.tar.gz  ;    keepalived-1.2.2.tar.gz
+主服务器IP：211.151.138.2     从服务IP：211.151.138.3   虚IP：211.151.138.5   你可以将你网站域名解析到 211.151.138.5 这一个公网IP上，这样主从服务器可以轮流接管该虚IP，保证网站正常对外提供访问
+keepalived 安装需要依赖 openssl ， 直接yum安装即可，yum install openssl openssl-devel
+nginx 的安装这里就不介绍了，网上相关文档很多，这里着重介绍 keepalived + nginx 的实现方式
+一： 安装 keepalived
+主从服务器都操作：
+下载 keepalived 软件包
+wget http://www.keepalived.org/software/keepalived-1.2.2.tar.gz
+tar zxvf keepalived-1.2.2 .tar.gz
+./configure
+make && make install
+默认情况下，keepalived 会安装在 /usr/local/keepalived 下，你可以通过 --prefix 定向其安装位置
+cp  /usr/local/keepalived/etc/rc.d/init.d/   /etc/init.d/
+mkdir  /etc/keepalived  (默认情况下，keepalived 会读取 /etc/keepalived 下keepalived.conf 文件，如果你没有建立这个文件，keepalived也不会报错，但是你会发现，你所创建的关于keepalived的相关参数根本就没有体现，keepalived这一点做的让人挺迷惑的  )
+二：此时，我们创建 keepalived.conf 文件
+主服务器配置：
+vim  /etc/keepalived/keepalived.conf , 键入以下内容
+
+global_defs {
+notification_email {
+admin@company.com     (这里可以定义多个报警邮箱)
+}
+notification_email_from alarm@company.com (报警人)
+smtp_server 127.0.0.1
+smtp_connect_timeout 30
+router_id LVS_DEVEL
+}
+vrrp_script chk_http_port {
+script "/opt/tools/bin/check_ng.sh"
+interval 2                   （检测的间隔）
+weight 2
+}
+vrrp_instance VI_1 {
+state MASTER           （显示定义为主服务器）
+interface eth1            （绑定的网口，该网口即上面提到的两个IP的接口）
+virtual_router_id 51    （定义的ID，官方的是 51，主从服务器必须一直）
+mcast_src_ip 211.151.138.2  （主服务器的IP）
+priority 100                （优先级，任意定义，但是一定要比从服务器高）     
+advert_int 1
+authentication {
+auth_type PASS       
+auth_pass 1111         （默认即可）  
+}
+track_script {
+chk_http_port            （调用检测脚本）
+}
+virtual_ipaddress {
+211.151.137.5         （绑定的虚IP）
+}
+}
+
+从服务器配置
+vim  /etc/keepalived/keepalived.conf , 键入以下内容
+
+global_defs {
+notification_email {
+admin@company.com     (这里可以定义多个报警邮箱)
+}
+notification_email_from alarm@company.com (报警人)
+smtp_server 127.0.0.1
+smtp_connect_timeout 30
+router_id LVS_DEVEL
+}
+vrrp_script chk_http_port {
+script "/opt/tools/bin/check_ng.sh"
+interval 2                           （检测脚本执行的间隔）
+weight 2
+}
+vrrp_instance VI_1 {
+state BACKUP           （显示定义为从服务器）
+interface eth1            （绑定的网口，该网口即上面提到的两个IP的接口）
+virtual_router_id 51    （定义的ID，官方的是 51，主从服务器必须一直）
+mcast_src_ip 211.151.138.3  （从服务器的IP）
+priority 50                （优先级，任意定义，但是一定要比主服务器低）     
+advert_int 1
+authentication {
+auth_type PASS       
+auth_pass 1111         （默认即可）  
+}
+track_script {
+chk_http_port            （调用检测脚本）
+}
+virtual_ipaddress {
+211.151.137.5         （绑定的虚IP）
+}
+}
+
+我们编辑 vim   /opt/tools/bin/check_ng.sh
+#！/bin/bash
+  N= `ps -C nginx --no-header |wc -l`
+   if [ $N -eq 0 ];then
+                    /usr/local/nginx/sbin/nginx
+                    sleep 3
+                    if [ `ps -C nginx --no-header |wc -l` -eq 0 ];then
+                           killall keepalived
+                    fi
+    fi    
+这是一个针对nginx状态进行检测的脚本，第一次nginx服务死掉时，会重新启动，如果Nginx服务依旧没有起来，则杀掉keepalived进程
+三：服务器上都启动 keepalived 进程 
+/etc/init.d/keepalived  start
+执行 /sbin/ip  a  我们看一下IP的使用情况
+主服务器：
+eth1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast qlen 1000
+    link/ether 80:c1:6e:71:f1:a2 brd ff:ff:ff:ff:ff:ff
+    inet 211.151.138.2/27 brd 211.151.138.31 scope global eth1
+    inet 211.151.138.5/32 scope global eth1
+可见虚IP已经挂载上了
+同时查看 tail -f /var/log/message  ,  keepalived 日志显示如下：
+Jun 28 18:44:25 proxy1 Keepalived_vrrp: Using LinkWatch kernel netlink reflector...
+Jun 28 18:44:25 proxy1 Keepalived_vrrp: VRRP sockpool: [ifindex(3), proto(112), fd(10,11)]
+Jun 28 18:44:25 proxy1 Keepalived_vrrp: VRRP_Script(chk_http_port) succeeded
+Jun 28 18:44:26 proxy1 Keepalived_vrrp: VRRP_Instance(VI_1) Transition to MASTER STATE
+Jun 28 18:44:27 proxy1 Keepalived_vrrp: VRRP_Instance(VI_1) Entering MASTER STATE             （这里显示其角色为主服务）
+Jun 28 18:44:27 proxy1 Keepalived_vrrp: VRRP_Instance(VI_1) setting protocol VIPs.
+Jun 28 18:44:27 proxy1 Keepalived_vrrp: VRRP_Instance(VI_1) Sending gratuitous ARPs on eth1 for  211.151.137.5 
+
+同时从服务器日志显示为：
+Jun 28 18:42:14 proxy2 Keepalived: Starting Keepalived v1.2.2 (06/21,2012)
+Jun 28 18:42:14 proxy2 Keepalived: Starting VRRP child process, pid=23588
+Jun 28 18:42:14 proxy2 Keepalived_vrrp: Registering Kernel netlink reflector
+Jun 28 18:42:14 proxy2 Keepalived_vrrp: Registering Kernel netlink command channel
+Jun 28 18:42:14 proxy2 Keepalived_vrrp: Registering gratutious ARP shared channel
+Jun 28 18:42:14 proxy2 Keepalived_vrrp: Opening file '/etc/keepalived/keepalived.conf'.
+Jun 28 18:42:14 proxy2 Keepalived_vrrp: Configuration is using : 65440 Bytes
+Jun 28 18:42:14 proxy2 Keepalived_vrrp: Using LinkWatch kernel netlink reflector...
+Jun 28 18:42:14 proxy2 Keepalived_vrrp: VRRP_Instance(VI_1) Entering BACKUP STATE         （显示为BACKUP，从）
+Jun 28 18:42:14 proxy2 Keepalived_vrrp: VRRP sockpool: [ifindex(3), proto(112), fd(10,11)]       
+
+此时我们关闭主上的keepalived服务，则从的日志变为：
+
+Jun 28 18:43:49 proxy2 Keepalived_vrrp: VRRP_Instance(VI_1) Transition to MASTER STATE
+Jun 28 18:43:50 proxy2 Keepalived_vrrp: VRRP_Instance(VI_1) Entering MASTER STATE
+Jun 28 18:43:50 proxy2 Keepalived_vrrp: VRRP_Instance(VI_1) setting protocol VIPs.
+Jun 28 18:43:50 proxy2 Keepalived_vrrp: VRRP_Instance(VI_1) Sending gratuitous ARPs on eth1 for 211.151.138.5 
+可见他已经接管了211.151.138.5 这一个虚IP，并且把自己的状态置为了主 MASTER
+
+此时再把原来主上的keepalived进程起来，则其日志为：
+
+Jun 28 18:44:26 proxy2 Keepalived_vrrp: VRRP_Instance(VI_1) Received higher prio advert
+Jun 28 18:44:26 proxy2 Keepalived_vrrp: VRRP_Instance(VI_1) Entering BACKUP STATE
+Jun 28 18:44:26 proxy2 Keepalived_vrrp: VRRP_Instance(VI_1) removing protocol VIPs.
+Jun 28 18:44:26 proxy2 avahi-daemon[6552]: Withdrawing address record for 211.151.138.5 on eth1
+表示接收到了更高权限的消息，于是他把自己的状态置为了从，并且归还 211.151.138.5 这个IP
+如此，就实现了高可用 HA
+

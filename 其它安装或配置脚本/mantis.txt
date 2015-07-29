@@ -1,0 +1,72 @@
+Requirements
+Software (for MantisBT 1.2.x)
+
+    PHP 5.2.0 and higher
+    MySQL database 4.1.1 and higher (MS SQL, DB2, and PostgreSQL are also supported).
+    Web server (Apache, IIS, etc.)
+
+Cost
+在CentOS上安装Mantis，中间碰到了很奇怪的问题，做个记录。
+
+这次我首先检查了版本的兼容性。
+apache pass
+php    pass
+mysql  pass
+OK，这才开始安装，
+下载mantis1.2.5后，解压，首先直接访问http://localhost/mantis/admin/install.php
+apahce提示找不到文件，我很纳闷，我先前安装的phpmyadmin，直接复制进/var/www目录后直接访问就可以了，这次为什么不行。我查看了mantis文件夹的权限。user和group是1000:1000，很奇怪。我就chown root:root.刷新还是不能访问。
+在网上搜索不到什么信息，修改文件名，不行；重新解压tar文件，不行；重启apache，不行；重启mysql，不行；重启CentOS，还是不行，都崩溃了。
+我想，既然phpmyadmin可以访问，说明apache没有问题，再有/var/www目录下的apache man l也可以访问的，是不是配置问题，我打开/etc/httpd/conf，检查了httpd.conf没有问题。在退出ls的时候我看到了conf.d文件夹，出于好奇，进入ls了一下，日！
+怎么有这么熟悉的配置文件有phpmyadmin.conf，但没有mantis的
+#vi phpmyadmin.conf
+Alias /phpmyadmin /var/www/phpmyadmin
+我照着上面的格式，写了个mantis.conf
+#vi mantis.conf
+Alias /mantis /var/www/mantis
+重启apache，刷新，bingo !
+可以访问了。
+这个问题还不知道原因呢，现暂留着，等到研究apache的时候在细究一下。
+
+上面的属于安装的过程中配置apahce的过程。
+接下来就是安装mantis了。
+
+    首先当然是创建数据库了：
+
+# mysql －uroot －p
+mysql> create database mantis;
+
+    创建一个帐号为mantis 密码为mantisps的帐户，并且给他权限来读写数据库：
+ mysql> insert into mysql.user(Host,User,Password) values("localhost","mantis",password("mantis"));
+mysql> flush privileges;
+Requirements
+grant all PRIVILEGES on *.* to mantis@'localhost' identified by 'mantis';
+
+mysql> flush privileges;
+Software (for MantisBT 1.2.x)
+
+    PHP 5.2.0 and higher
+    MySQL database 4.1.1 and higher (MS SQL, DB2, and PostgreSQL are also supported).
+    Web server (Apache, IIS, etc.)
+
+Cost
+
+    在mantis的目录下cp config_inc.php.sample config_inc.php
+
+修改config_inc.php，将刚刚配置数据库内容填入：
+# --- Database Configuration ---
+$g_hostname      = 'localhost';
+$g_db_username   = 'mantis';
+$g_db_password   = 'mantisps';
+$g_database_name = 'mantis';
+$g_db_type       = 'mysql';
+保存退出。
+
+    在浏览器中打开http://localhost/mantis/admin/install.php开始安装，Checking Installation...应该都为GOOD才对，否则需要进行修改。
+    在下面的选现中username和password都填入上面配置的mantis和mantisps
+    点击install\upgrade开始安装
+
+完成安装！
+在http://localhost/mantis就可以访问了，使用
+user：administrator
+password：root
+

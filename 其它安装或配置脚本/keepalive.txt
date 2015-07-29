@@ -1,0 +1,7 @@
+1 yum install make gcc automake autoconf gcc-c++  openssl*   popt-devel
+cd keepalived 
+./configure  --prefix=/usr/local/keepalived/
+make make install 
+cp /usr/local/keepalived/sbin/keepalived /usr/sbin/ 
+cp /usr/local/keepalived/etc/rc.d/init.d/keepalived /etc/init.d/
+ mkdir /etc/keepalived

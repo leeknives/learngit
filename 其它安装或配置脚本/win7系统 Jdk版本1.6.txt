@@ -1,0 +1,7 @@
+用鼠标右击“我的电脑”->属性->高级->环境变量
+系统变量->新建->变量名：JAVA_HOME 变量值：C:\Program Files\Java\jdk1.6.0_37(这只是我的JDK安装路径)
+系统变量->编辑->变量名：Path 在变量值的最前面加上：%JAVA_HOME%\bin;（若已经有Path项，无须另外新建，直接在后
+
+面加，但需用;与前面已有的项分隔开）
+系统变量->新建->变量名：CLASSPATH 变量值：
+.;%JAVA_HOME%\lib;%JAVA_HOME%\lib\dt.jar;%JAVA_HOME%\lib\tools.jar;

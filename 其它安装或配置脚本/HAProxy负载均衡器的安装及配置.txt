@@ -1,0 +1,120 @@
+软件负载均衡一般通过两种方式来实现：基于操作系统的软负载实现和基于第三方应用的软负载实现。LVS就是基于Linux操作系统实现的一种软负载，HAProxy就是开源的并且基于第三应用实现的软负载。
+
+HAProxy相比LVS的使用要简单很多，功能方面也很丰富。当 前，HAProxy支持两种主要的代理模式:"tcp"也即4层（大多用于邮件服务器、内部协议通信服务器等），和7层（HTTP）。在4层模式 下，HAProxy仅在客户端和服务器之间转发双向流量。7层模式下，HAProxy会分析协议，并且能通过允许、拒绝、交换、增加、修改或者删除请求 (request)或者回应(response)里指定内容来控制协议，这种操作要基于特定规则。
+
+我现在用HAProxy主要在于它有以下优点，这里我总结下：
+一、免费开源，稳定性也是非常好，这个可通过我做的一些小项目可以看出来，单Haproxy也跑得不错，稳定性可以与LVS相媲美；
+
+二、根据官方文档，HAProxy可以跑满10Gbps-New benchmark of HAProxy at 10 Gbps using Myricom's 10GbE NICs (Myri-10G PCI-Express)，这个作为软件级负载均衡，也是比较惊人的；
+
+三、HAProxy可以作为MySQL、邮件或其它的非web的负载均衡，我们常用于它作为MySQL(读)负载均衡；
+
+四、自带强大的监控服务器状态的页面，实际环境中我们结合Nagios进行邮件或短信报警，这个也是我非常喜欢它的原因之一；
+
+五、HAProxy支持虚拟主机。
+实验环境也很简单：
+
+HAProxy  IP:192.168.4.192 Centos5.5-64bit
+Web1 IP:192.168.4.45 Centos5.4-64bit
+Web2 IP:192.168.21.45 FreeBSD8.0-64bit
+
+具体安装及配置文档如下：
+
+一、HAProxy的下载及安装过程：
+
+wget http://haproxy.1wt.eu/download/1.3/src/haproxy-1.3.20.tar.gz
+make TARGET=linux26 prefix=/usr/local/haproxy install
+cd /usr/local/haproxy
+mkdir conf
+cd conf
+vim haproxy.conf
+
+内容 如下：
+
+global
+        log 127.0.0.1   local0
+        maxconn 4096
+        chroot /usr/local/haproxy
+        uid 501
+        gid 501
+        daemon
+        nbproc 1
+        pidfile /usr/local/haproxy/logs/haproxy.pid
+        debug
+
+defaults
+ log     127.0.0.1       local3
+        mode    http
+        option httplog
+        option httpclose
+        option dontlognull
+        option forwardfor
+        option redispatch
+        retries 2
+        maxconn 2000
+        balance roundrobin
+        stats   uri     /haproxy-stats
+        contimeout      5000
+        clitimeout      50000
+        srvtimeout      50000
+
+listen web_proxy 192.168.4.192:80
+        #option httpchk HEAD /index.php  HTTP/1.0
+        server web1_192.168.21.45 192.168.21.45:80 cookie app1inst1 check inter 2000 rise 2 fall 5
+        server web2_192.168.4.45  192.168.4.45:80 cookie app1inst2 check inter 2000 rise 2 fall 5
+配置文件刚从服务器上copy下来的，保证可用。这里有个事情说明一下，有时候我们进入页面http://192.168.4.192/就会报如下错误：
+
+503 Service UnavailableNo server is available to handle this request.
+
+option httpchk HEAD /check.txt HTTP/1.0
+
+此问题出在这句话上面，它的意思是Haproxy会判断你的后端web的根上存在check.txt没有，以此作为haproxy-status的监控状态依据，将它#掉即可；如果是生产环境，你可将check.txt改为index.jsp或index.php即可；
+
+另外，建议配置一个HAProxy的启动、关闭、重启脚本，放在/etc/init.d下，我们在平时的工作中应该养成一个习惯，服务器的启动或重启应该是最简单的，万一到了生产环境下出错时，我们可以以最快的方式启动，如果不用脚本的话，我们就要尝试以如下方式启动：
+
+/usr/local/haproxy/sbin/haproxy -f /usr/local/haproxy/haproxy.cfg
+
+以下脚本生成后，我们直接可以用/etc/init.d/haproxy  start来启动HAProxy服务了。
+
+#!/bin/bash
+BASE_DIR="/usr/local/haproxy"
+ARGV="$@"
+
+start()
+{
+echo "START HAPoxy SERVERS"
+$BASE_DIR/sbin/haproxy -f $BASE_DIR/conf/haproxy.cfg
+}
+
+stop()
+{
+echo "STOP HAPoxy Listen"
+kill -TTOU $(cat $BASE_DIR/logs/haproxy.pid)
+echo "STOP HAPoxy process"
+kill -USR1 $(cat $BASE_DIR/logs/haproxy.pid)
+}
+case $ARGV in
+
+start)
+start
+ERROR=$?
+;;
+
+stop)
+stop
+ERROR=$?
+;;
+
+restart)
+stop
+start
+ERROR=$?
+;;
+
+*)
+echo "hactl.sh [start|restart|stop]"
+esac
+exit $ERROR
+
+我们在Firefox或IE上输入http://192.168.4.192  就可以轮询的看到后端的web的页面了，另外我们可以随时监控页面http://192.168.4.192/haproxy-status/，效果图如下：
+另外，如果要做HAProxy的高可用，我推荐用HAProxy+Keepalived，网上成功的安例也有许多，大家可以googel学习下，如果你对此篇文章有疑问或其它，希望通过我在51cto的博客与我交流http://andrewyu.blog.51cto.com(抚琴煮酒)。

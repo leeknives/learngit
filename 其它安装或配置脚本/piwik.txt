@@ -1,0 +1,18 @@
+
+1.  yum install mysql mysql-server   mysql-server dependencies  perl-DBD-MySQL     perl-DBI
+2.  yum install  httpd 
+3.  yum install  php    dependencies   php-common  php-cli  
+4.  yum install  php-mysql        dependencies    php-pdo
+5   yum install php-mysql php-gd php-imap php-ldap php-odbc php-pear php-xml php-xmlrpc  php-mbstring
+ iptables -F setenfoce
+ 
+注释掉首页东东   /var/www/html/piwik/plugins/Login/templates/login.css  
+
+#logo .description {
+        font-family: Georgia, "Times New Roman", Times, serif;
+        font-weight: normal;
+  添加     display:none;
+        color: #6B320B;
+        font-size: 18pt;
+        margin-left:50px;
+        margin-bottom:30px;

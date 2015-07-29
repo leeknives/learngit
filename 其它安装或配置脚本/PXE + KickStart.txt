@@ -1,0 +1,125 @@
+1. DHCP 服务器
+2. TFTP 服务器
+3. KickStart所生成的ks.cfg配置文件
+4. 一台存放系统安装文件的服务器，如
+NFS、HTTP 或 FTP 服务器
+5. 带有一个 PXE 支持网卡的将安装的主机
+一、安装httpd
+yum -y install httpd*
+二、挂载RHEL5的DVD光盘，并复制第一张光盘下的所有内容（文件和文件夹）到/var/html/www下
+mount /dev/cdrom /mnt
+cp –rf /mnt/* /var/html/www
+三、安装 tftp-server，并启用tftp服务，重启xinetd进程
+rpm -ivh tftp-server-0.39-1.i386.rpm
+vi /etc/xinetd.d/tftp
+# default: off
+# description: ...
+{
+socket_type = dgram
+protocol = udp
+wait = yes
+user = root
+server = /usr/sbin/in.tftpd
+server_args = -s /tftpboot
+disable = no #disable 的值由yes变为no
+per_source = 11
+cps = 100 2
+flags = IPv4
+}
+service xinetd restart
+四、配置支持PXE启动
+注意我已经把第一张光盘的内容复制到/var/www/html目录中了，
+所以所需要的文件我只需要从/var/ftp目录中复制就行了。
+1、进入tftpboot文件夹，没有就建一个，有了就不用建了。
+cd /tftpboot/
+2、把pxelinux.0复制到/tftpboot/中
+cp /usr/lib/syslinux/pxelinux.0 /tftpboot
+3、把Linux第一张安装光盘上/image/pxeboot/initrd.img和
+vmlinux复制到/tftpboot/中
+cp /var/ftp/image/pxeboot/initrd.img /tftpboot
+cp /var/ftp/image/pxeboot/vmlinux /tftpboot
+4、 复制第一张安装光盘上的isolinux/*.msg到/tftpboot/中
+cp /var/ftp/isolinux/*.msg /tftpboot
+5、 在tftpboot中新建一个pxelinux.cfg目录
+mkdir pxelinux.cfg
+6、 把Linux第一张安装光盘上isolinux目录中的isolinux.cfg复制到
+pxelinux.cfg目录中，并同时更改文件名称为default
+cd pxelinux.cfg
+cp /var/ftp/isolinux/isolinux.cfg
+/tftpboot/pxelinux.cfg/default
+五、安装dhcp服务，同时修改配置
+1、 安装
+rpm -ivh dhcp-3.0.1-12_EL.i386.rpm
+2、 复制配置模板文件到指定的目录中，并重命名
+cp /usr/share/doc/dhcp-3.0.1/dhcpd.conf.sample
+/etc/dhcpd.conf
+3、 修改配置文件，添加一行：filename "/pxelinux.0"，其他的修改
+自己完成就行了。这文件的位置一定要注意,不然会失败,切记
+[root@localhost isolinux]# vim /etc/dhcpd.conf
+ddns-update-style interim;
+ignore client-updates;
+next-server 192.168.1.14;#PXE 服务器IP地址
+filename "/pxelinux.0";#注意此行的位置,写在subnet下面的话会失败
+subnet 192.168.1.0 netmask 255.255.255.0 {
+# --- default gateway
+option routers 192.168.1.254;
+option subnet-mask 255.255.255.0;
+option nis-domain "example.com";
+option domain-name "example.com";
+option domain-name-servers 192.168.1.254;
+option time-offset -18000;
+# 其他配置参数
+#
+}
+4、 启动dhcp服务
+service dhcp start
+六、 安装kickstart并进行配置
+首先安装Kickstart：
+rpm -ivh system-config-kickstart-2.5.16-2.noarch.rpm
+在gnome环境下配置kickstart的指令如下：
+system-config-kickstart
+之后的配置步骤如下：
+1. 基本配置，按自己需求来就好
+2. 安装方法，选择httpd安装，切记不要输入任何的帐号，我们采
+用的匿名安装
+3. 引导安装程序选项，不需要做更改
+4. 分区信息，创建三个分区
+5. 网络配置，我使用的静态分配地址(动态同样如此)
+6. 显示配置，按自己需求来就好
+7. 软件包的选择，我选择了Kernel Developent和Development
+Tools安装（但千万不要选择这两个软件包，不然的话在安装的时
+候会报错的）
+8. 其他的都是默认设置，没有做修改
+9. 生成文件ks.cfg，保存到/var/www/html下
+七、修改/tftpboot/pxelinux.cfg/default文件，指定读取ks.cfg的方法
+（ks=http://192.168.1.40/ks.cfg）
+vi /tftpboot/pxelinux.cfg/default
+auth --useshadow --enablemd5
+key --skip #这行一定要，跳过注册号输入，不然会失败
+bootloader --location=mbr
+clearpart –all –initlabel
+text
+firewall --disabled
+firstboot --disable
+keyboard us
+lang en_US
+logging --level=info
+url --url=http://192.168.1.14/
+network --bootproto=dhcp --device=eth0 --onboot=on
+reboot
+rootpw --iscrypted $1$HEJKfwF9$r1l0JoPz74ToF9NbE3Qs1
+selinux --disabled
+timezone --isUtc Asia/Shanghai
+intall
+xconfig --defaultdesktop=GNOME -depth=8
+--resolution=640x480
+part swap --bytes-per-inode=4096 --fstype="swap"
+--size=512
+part /boot --bytes-per-inode=4096 --fstype-"ext3"
+--size=200
+part / --bytes-per-inode=4096 --fstype="ext3" --grow
+--size=1
+%packages
+#下面指定软件包列表即可
+后，重新引导安装就可以了。
+以上是我的配置步骤，如果没有出入的话，是一定可以成功的！

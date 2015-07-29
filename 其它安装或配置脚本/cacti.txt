@@ -1,0 +1,45 @@
+yum -y install httpd php mysql mysql-server php-mysql  
+yum -y install httpd-manual mod_ssl mod_perl mod_auth_mysql
+yum -y install php-gd php-xml php-mbstring php-ldap php-pear php-xmlrpc 
+yum -y install mysql-connector-odbc mysql-devel libdbi-dbd-mysql
+
+# vim /etc/httpd/conf/httpd.conf
+
+391 DirectoryIndex index.php index.html index.html.var
+
+# service httpd start &&chkconfig httpd on
+
+# service mysqld start &&chkconfig mysqld on
+
+
+//测试apache与mysql的连接性
+
+<?php
+
+$lin=mysql_connect('127.0.0.1','root','');
+
+if($lin)
+
+echo "ok";
+
+else
+
+echo "failed";
+
+?>
+
+
+   shell> mysql cacti < cacti.sql
+ Optional: Create a MySQL username and password for Cacti.
+
+GRANT ALL ON cacti.* TO root@localhost IDENTIFIED BY 'centos';
+
+  Edit include/config.php and specify the database type, name, host, user and password for your Cacti configuration.
+ $database_type = "mysql";
+    $database_default = "cacti";
+    $database_hostname = "localhost";
+    $database_username = "cactiuser";
+    $database_password = "cacti";
+
+
+yum install  rrdtool  net-snmp*

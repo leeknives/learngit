@@ -1,0 +1,47 @@
+内存  磁盘空间
+configure
+ --perfix =PREFIX      日志   日志空间大小
+ --localstatedir =DIR
+ --sysconfdir =DIR
+squid 专有 ./configure
+ --enable-dlmalloc[=LIB] LIB库
+ --enable-gnuregex   正则表达式
+ --enable-carp  转发丢失cache 到父cache 或cluster
+ --enable-async-io[=N_THREADS] 打开下面三个快捷
+ --with-aufs-threads=N_THREADS  编译过程连接到系统的P线程库
+ --with-pthreads 
+ --enable-storeio=ufs,aufs
+ --enable-storeio=LIST 支持不同的存储模块 ufs aufs diskd null
+    example % ./configure --enable-storeio=afus,diskd
+ --enable-icmp  利用ICMP来确定回环时间尺寸
+ --enable-snmp 
+ --enable-cachemgr-hostname[=hostname]cachemgrCGI程序查询squid
+   example % ./configure --enable-cachemgr-hostname=mychache.myorg.net
+ --enable-arp-acl ARP 以太控制访问 列表非标准库函数
+cache_effective_user squid 执行完特别任务后，变成那个用户（仅以root启动squid）
+  http_port 默认3128
+默认日志 /usr/local/squid/var/logs
+ squid 三个主要日志   
+cache.log  状态和调试信息   cache_log /squid/logs.cache.log 改变日子路径
+access.log  包含了对squid发起的每个客户的请求的单一行 cache_access_log /squid/logs/access.log
+store.log  进入和离开缓冲的每个目标的记录 cache_store_log /squid/logs/store.log
+一个合理的初始访问控制配置
+acl All src 0/0
+acl Manager proto cache_object
+acl Localhost src 127.0.0.1/32
+acl Safe_ports port 80 21 443 563 70 210 280 488 591 777 1025-65535
+acl SSL_ports 443 563
+acl CONNECT method CONNECT
+acl MyNetwork src 192.168.0.0/16
+http_access allow Manager Localhost
+http_access deny Manager
+http_access deny !Safe_ports
+http_access deny CONNECT !SSL_ports
+http_access allow MyNetwork
+http_access deny All
+%squid -k shutdown
+%squid -k reconfigure
+%squid -k rotate   滚动日志
+splay tree 数据结构存储ACL
+
+ 

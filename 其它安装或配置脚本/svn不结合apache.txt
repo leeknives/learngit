@@ -1,0 +1,154 @@
+
+linux svn安装和配置，不结合apache
+
+
+
+一，安装要的软件
+
+wget http://subversion.tigris.org/downloads/subversion-1.6.1.tar.gz
+wget http://subversion.tigris.org/downloads/subversion-deps-1.6.1.tar.gz
+
+svn的官方网址是http://subversion.tigris.org
+
+上面二个压缩文件解压后会放到同一个文件下，不要另建文件夹
+
+二，安装独立svn
+
+1，解压安装
+
+    tar zxvf subversion-1.6.1.tar.gz  
+    tar zxvf subversion-deps-1.6.1.tar.gz  
+    cd subversion-1.6.1/  
+    ./configure --prefix=/usr/local/svn  
+    make && make install  
+
+到这儿就安装好了。安装独立svn，它也考虑到将来有可能会和apache结合，所以安装的时候，它把和apache结合要用到的模块都放到/usr/lib/httpd/modules，部分提示如下
+Libraries have been installed in:
+/usr/lib/httpd/modules
+
+If you ever happen to want to link against installed libraries
+in a given directory, LIBDIR, you must either use libtool, and
+
+2，查看svn信息
+
+[root@BlackGhost bin]# /usr/local/svn/bin/svnserve --version
+svnserve, version 1.6.1 (r37116)
+compiled Jul  7 2010, 23:06:21
+
+Copyright (C) 2000-2009 CollabNet.
+Subversion is open source software, see http://subversion.tigris.org/
+This product includes software developed by CollabNet (http://www.Collab.Net/).
+
+The following repository back-end (FS) modules are available:
+
+* fs_fs : Module for working with a plain file (FSFS) repository.
+
+Cyrus SASL authentication is available.
+
+3，将svn的bin目录加到环境变量中去
+
+[root@BlackGhost /]# PATH=$PATH:/usr/local/svn/bin
+[root@BlackGhost /]# export PATH
+[root@BlackGhost /]# svn
+svn            svnadmin       svnlook        svnsync
+svn2abs        svndumpfilter  svnserve       svnversion
+
+三，建立仓库，配置svn
+
+1，建个svn的根目录，因为项目不只一个
+
+[zhangy@BlackGhost ~]$ mkdir -p /home/zhangy/www    #-p的意思是说如果没有父目录建之
+
+2，建个仓库
+
+[zhangy@BlackGhost ~]$ mkdir -p /home/zhangy/www/repos
+
+[zhangy@BlackGhost www]$ svnadmin create /home/zhangy/www/repos/
+
+3，导入数据
+
+[zhangy@BlackGhost ~]$ svn import ./svntest file:///home/zhangy/www/repos -m "Initial repository test"
+Adding         svntest/test.php
+
+Committed revision 1.
+
+4，修改svnserve.conf
+
+[root@BlackGhost conf]# vi svnserve.conf
+
+[general]
+anon-access = none
+auth-access = write
+password-db = passwd
+authz-db = authz
+
+5,目录控制文件authz
+
+[root@BlackGhost conf]# vi authz
+[groups]
+
+admin= zhangy
+
+[repos:/]
+@admin = rw
+* = r
+
+6,修改用户密码文件passwd
+
+[root@BlackGhost conf]# vi passwd
+
+[users]
+zhangy = ＊＊＊＊＊
+
+四，启动和简单测试
+
+1，启动svn
+
+[root@BlackGhost www]# svnserve -d -r /home/zhangy/www
+
+在这里特别的要注意，/home/zhangy/www是仓库的根目录，不要和[repos:/]目录重叠了。如果重叠是会提示你以下错误
+
+[zhangy@BlackGhost checkout]$ svn co svn://127.0.0.1/
+svn: Authorization failed
+
+2，测试svn
+
+a)，checkout
+
+[zhangy@BlackGhost checkout]$ svn co svn://127.0.0.1/repos
+Authentication realm: <svn://127.0.0.1:3690> 3d0c32b1-3841-4518-b6b1-dcdb6c7ed716
+Password for 'zhangy':
+-----------------------------------------------------------------------
+ATTENTION!  Your password for authentication realm:
+
+<svn://127.0.0.1:3690> 3d0c32b1-3841-4518-b6b1-dcdb6c7ed716
+
+can only be stored to disk unencrypted!  You are advised to configure
+your system so that Subversion can store passwords encrypted, if
+possible.  See the documentation for details.
+
+You can avoid future appearances of this warning by setting the value
+of the 'store-plaintext-passwords' option to either 'yes' or 'no' in
+'/home/zhangy/.subversion/servers'.
+-----------------------------------------------------------------------
+Store password unencrypted (yes/no)? yes
+A    repos/test.php
+Checked out revision 1.
+
+checkout的时候会出现Store password unencrypted，解决办法
+
+vi /home/zhangy/.subversion/servers
+
+找到以下内容，注释去掉并改成yes就行了
+
+# store-plaintext-passwords = no
+
+b)，add 和submit
+
+[zhangy@BlackGhost repos]$ svn add aaa.php
+A         aaa.php
+[zhangy@BlackGhost repos]$ svn commit aaa.php -m "ok"
+Adding         aaa.php
+Transmitting file data .
+Committed revision 2.
+

@@ -1,0 +1,62 @@
+BerkeleyDB页面上提供的是oracle的官方地址，但下载要注册。。。找朋友要了个4.6版本的装，装memcachedb-1.2.1-beta会提示：
+configure: error: cannot find libdb.so in /usr/local/BerkeleyDB.4.7/lib
+看到memcached下载页面上写着：MemcacheDB 1.2.0 is released, for BerkeleyDB 4.7 ，才明白，memcachedb-1.2.1-beta是需要装BerkeleyDB.4.7的。那就去装一个4.7的BerkeleyDB吧，然后才发现berkeley-db的旧版本是可以直接下载的。http://www.oracle.com/technetwork/database/berkeleydb/downloads/index.html 点   Previous Releases
+
+网上大都的教程都是BerkeleyDB.4.6+memcachedb-0.1.0，我就整个BerkeleyDB.4.7+memcachedb-1.2.1的安装过程。
+
+装libevent
+wget http://monkey.org/~provos/libevent-1.4.14b-stable.tar.gz
+tar -zxvf libevent-1.4.14b-stable.tar.gz
+cd libevent-1.4.14b-stable
+./configure
+make
+make install
+
+装berkeley-db
+wget http://download.oracle.com/berkeley-db/db-4.7.25.tar.gz
+tar zxf db-4.7.25.tar.gz
+cd db-4.7.25/build_unix/
+../dist/configure
+make
+make install
+
+#编译完成，将Berkeley Db运行库的路径添加到系统配置里面
+echo "/usr/local/BerkeleyDB.4.7/lib/" >> /etc/ld.so.conf
+ldconfig
+
+装memcachedb，最新版是2008年12月份的，至今没有更新据说是已经比较稳定了。
+wget http://memcachedb.googlecode.com/files/memcachedb-1.2.1-beta.tar.gz
+tar zxf memcachedb-1.2.1-beta.tar.gz
+cd memcachedb-1.2.1-beta
+./configure
+make
+make install
+
+装完了！
+
+启动memcachedb
+创建目录/www/mcdb_data
+memcachedb -p 22222 -d -r -u root -H /www/mcdb_data -N
+
+用PHP连接memcachedb和连接memcache的代码几乎是一模一样的。
+<?php
+    $mcdb_host = '192.168.1.158';
+    $mcdb_port = '22222';
+    
+    $mcdb = new Memcache;
+    $mcdb->connect($mcdb_host, $mcdb_port);
+    
+    $mcdb->set('test','test');
+    echo $mcdb->get('test');
+?>
+服务器重启后，$mcdb->get('test')，仍然可以获得值，证明不会丢失，测试完成：）
+
+@@101228@@UPDATE：
+如果之前装过libevent，并且指定了安装目录，在装mcdb时需要用-with-libevent=/dir/指定。
+如：./configure --with-libevent=/usr/local/libevent
+
+如果装了libevent，但在启动memcachedb时提示：memcachedb: error while loading shared libraries: libdb-4.7.so: cannot open shared object file: No such file or directory
+其实是没运行这一步：
+echo "/usr/local/BerkeleyDB.4.7/lib/" >> /etc/ld.so.conf
+ldconfig
+运行了ldconfig后，才能让动态链接库为系统所共享。

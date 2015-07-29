@@ -1,0 +1,6 @@
+yum install automake autoconf libtool ncurses-devel libxslt groff pcre-devel pkgconfig make gcc gcc-c++ -y
+cd bin/varnishtest && ./varnishtest tests/*.vtc
+cd varnish-cache
+sh autogen.sh
+sh configure
+make

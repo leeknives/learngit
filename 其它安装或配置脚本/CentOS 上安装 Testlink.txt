@@ -1,0 +1,56 @@
+1. 安装 mysql：
+
+yum mysql mysql-server。
+
+2. 安装 php：
+
+yum php php-mysql php-gd php-ldap
+
+3. 配置自启动：
+
+chkconfig mysql on
+
+chkconfig httpd on
+
+4. 启动服务：
+
+service mysqld start
+
+service httpd start
+
+5. 配置 mysql 密码等参数：
+
+mysql_secure_installation。
+
+6. 获取并解压 Testlink：
+
+wget http://sourceforge.net/projects/testlink/files/TestLink%201.9/TestLink%201.9.3/testlink-1.9.3.tar.gz/download?use_mirror=jaist
+
+cp testlink-1.9.3.tar.gz /var/www/html
+
+cd /var/www/html
+
+tar xvf testlink-1.9.3.tar.gz
+
+mv testlink-1.9.3.tar.gz testlink
+
+chown root:root testlink -R
+
+rm testlink-1.9.3.tar.gz
+
+7. 配置 php 参数符合 Testlink 要求：
+
+vim /etc/php.ini
+
+session.gc_maxlifetime = 2400
+
+max_execution_time = 180
+
+memory_limit = 128M
+vi config_db.inc.php
+
+8. 重启 mysql：
+
+service mysql restart
+
+9. 现在你可以通过 http://[IP 地址或者主机名]/testlink 来访问了。

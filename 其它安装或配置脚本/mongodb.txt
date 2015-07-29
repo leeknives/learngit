@@ -1,0 +1,16 @@
+mongodb
+
+building
+
+yum -y install git tcsh scons gcc-c++ glibc-devel
+yum -y install boost-devel pcre-devel js-devel readline-devel
+yum -y install boost-devel-static readline-static ncurses-static
+
+yum install -y bzip2-devel python-devel libicu-devel chrpath zlib-devel nspr-devel readline-devel ncurses-devel boost-devel pcre-devel js-devel readline-devel git tcsh scons gcc-c++ glibc-devel js js-devel
+
+wget http://download.fedora.redhat.co ... 70-8.el5.x86_64.rpm
+wget http://download.fedora.redhat.co ... -1.70-8.el5.src.rpm
+wget http://download.fedora.redhat.co ... 70-8.el5.x86_64.rpm
+
+
+rpm -ivh *.rpm

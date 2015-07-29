@@ -1,0 +1,87 @@
+<?
+/**********************
+*  check mysql sync
+**********************/
+
+if ($argc < 6) {
+        usage($argv[0]);
+}
+$host = $argv[1];
+$port = $argv[2];
+$user = $argv[3];
+$pass = ($argv[4] == "null" ? "" : $argv[4]);
+$maxdelay =$argv[5];
+
+if (     ! preg_match("/^(\d+\.){3}\d+$/", $host) ||
+     ! preg_match("/^\d+$/", $port) ||
+     ! preg_match("/^\d+$/", $maxdelay) ) {
+     usage($argv[0]);
+}
+
+$db = dbConnect($host, $port, $user, $pass);
+if ($db === false) {
+     printf("CRITICAL -- mysqlSync %s:%s connect fail\n", $host, $port);
+     exit(2);
+}
+$result = queryDB($db);
+if ($result === false) {
+     printf("WARNING -- mysqlSync %s:%s (query fail)\n", $host, $port);
+     exit(1);
+} else {
+     if (! preg_match("/^\d+$/", $result) ) {
+          printf("WARNING -- mysqlSync %s:%s (%s)\n", $host, $port, $result);
+          exit(1);
+     } else {
+          if ($result >= $maxdelay) {
+               printf("WARNING -- mysqlSync %s:%s (delay %s)\n", $host, $port, $result);
+               exit(1);
+          } else {
+               printf("OK -- mysqlSync %s:%s (delay %s)\n", $host, $port, $result);
+               exit(0);
+          }
+     }
+}
+
+function queryDB($dbh)
+{
+     $sql = "show slave status";
+     $res = mysql_query($sql);
+     if ( ! $res ) {
+          return false;
+     } else {
+          if ($row = mysql_fetch_object($res)) {
+               if (strtolower($row->Slave_IO_Running) != "yes" || strtolower($row->Slave_SQL_Running) != "yes") {
+                    return "sync stop";
+               }
+               if ( isset($row->Seconds_Behind_Master) )
+                    return $row->Seconds_Behind_Master;
+
+               return false;
+
+          } else {
+               return false;
+          }
+     }
+}
+
+function dbConnect($host, $port, $user, $pass)
+{
+     $conn = @mysql_connect($host.":".$port, $user, $pass);
+     if ($conn === false) {
+          return false;
+     }
+     return $conn;
+}
+
+function errorExit($message)
+{
+        printf("Error: %s\n", $message);
+        exit(2);
+}
+
+function usage($p)
+{
+     printf("Usage: php %s host port\n", $p);
+     exit(1);
+}
+?>

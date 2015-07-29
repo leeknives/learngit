@@ -1,0 +1,144 @@
+yum install automake autoconf libtool ncurses-devel libxslt groff pcre-devel pkgconfig make gcc gcc-c++ penssl openssl-devel  -y
+1、目的
+   使用squid加速图片的访问
+2、架构
+   squid:192.168.0.200
+   web(test0.weike.com):192.168.0.201   图片服务器
+   web(test1.weike.com):192.168.0.202   图片服务器
+3、安装
+
+
+   #wget wget http://www.squid-cache.org/Versions/v3/3.0/squid-3.0.STABLE15.tar.gz
+   #tar xzvf squid-3.0.STABLE15.tar.gz
+   #cd squid-3.0.STABLE15
+   #./configure --prefix=/usr/local/squid --enable-dlmalloc --enable-debug-cbdata --enable-async-io=100 --with-pthreads --enable-storeio="aufs,diskd,ufs" --enable-removal-policies="heap,lru" --enable-icmp --enable-delay-pools --enable-useragent-log --enable-referer-log --disable-wccp --disable-wccpv2 --enable-kill-parent-hack --enable-arp-acl --enable-snmp --enable-default-err-language=Simplify_Chinese --enable-err-languages="Simplify_Chinese English" --disable-poll --enable-epoll --disable-ident-lookups --disable-internal-dns --enable-truncate --enable-underscores --enable-basic-auth-helpers="NCSA" --enable-stacktrace --with-winbind-auth-challenge --enable-large-cache-files --with-large-files --with-maxfd=65535 --enable-ssl --enable-x-accelerator-vary
+   #make
+   #make install
+
+4、配置
+
+   #vim /usr/local/squid/etc/squid.conf
+
+   ####base######
+   visible_hostname localhost
+   cache_mgr yuangang@shopex.cn
+   cache_effective_user squid
+   cache_effective_group squid
+   ####cache#####
+   cache_mem 600 MB
+   cache_swap_low 90
+   cache_swap_high 95
+   maximum_object_size 12000 KB
+   maximum_object_size_in_memory 1024 KB
+   cache_dir ufs /usr/local/squid/var/cache 10000 16 256
+   cache_access_log /usr/local/squid/var/logs/access.log
+   cache_log /usr/local/squid/var/logs/cache.log
+   cache_store_log /usr/local/squid/var/logs/store.log
+   #####no-cache##########
+   hierarchy_stoplist cgi-bin ?/.php
+   acl QUERY urlpath_regex cgi-bin /?/.php
+   #acl DIRECT url_regex -i ^http://192.168.0.201
+   cache deny QUERY
+   #cache deny DIRECT
+   #####refresh_pattern####
+   refresh_pattern ^ftp: 60 20% 10080
+   refresh_pattern ^gopher: 60 0% 1440
+
+   refresh_pattern ^gopher: 60 0% 1440
+   refresh_pattern . 0 20% 1440
+   refresh_pattern -i /.css$       360     50%     2880     reload-into-ims
+   refresh_pattern -i /.js$        1440    50%     2880     reload-into-ims
+   refresh_pattern -i /.html$      720     50%     1440     reload-into-ims
+   refresh_pattern -i /.jpg$       1440    90%     2880     ignore-reload
+   refresh_pattern -i /.gif$       1440    90%     2880     ignore-reload
+   refresh_pattern -i /.swf$       1440    90%     2880     ignore-reload
+   refresh_pattern -i /.jpg$       1440    50%     2880     ignore-reload
+   refresh_pattern -i /.png$       1440    50%     2880     ignore-reload
+   refresh_pattern -i /.bmp$       1440    50%     2880     ignore-reload
+
+
+   refresh_pattern -i /.doc$       1440    50%     2880      ignore-reload
+   refresh_pattern -i /.ppt$       1440    50%     2880      ignore-reload
+   refresh_pattern -i /.xls$       1440    50%     2880      ignore-reload
+   refresh_pattern -i /.pdf$       1440    50%     2880      ignore-reload
+   refresh_pattern -i /.rar$       1440    50%     2880      ignore-reload
+   refresh_pattern -i /.zip$       1440    50%     2880      ignore-reload
+   refresh_pattern -i /.txt$       1440    50%     2880      ignore-reload
+   ######proxy agent###        
+   http_port 80 accel vhost vport        
+   cache_peer 192.168.0.201 parent 80 0 no-query originserver name=www        
+   cache_peer_domain www www.gangpao.com
+          
+   cache_peer 192.168.0.202 parent 80 0 no-query originserver name=shop        
+   cache_peer_domain shop shop.gangpao.com
+   ######alc#####
+   acl manager proto cache_object
+   acl localhost src 127.0.0.1/32
+   acl to_localhost dst 127.0.0.0/8
+   acl localnet src 10.0.0.0/8     # RFC1918 possible internal network
+   acl localnet src 172.16.0.0/12  # RFC1918 possible internal network
+   acl localnet src 192.168.0.0/16 # RFC1918 possible internal network
+   acl LanSrc src 192.168.0.0/24
+   acl LanDst dst 192.168.0.0/24
+   acl SSL_ports port 443
+   acl Safe_ports port 80          # http
+   acl Safe_ports port 21          # ftp
+   acl Safe_ports port 443         # https
+   acl Safe_ports port 70          # gopher
+   acl Safe_ports port 210         # wais
+   acl Safe_ports port 1025-65535  # unregistered ports
+   acl Safe_ports port 280         # http-mgmt
+   acl Safe_ports port 488         # gss-http
+   acl Safe_ports port 591         # filemaker
+   acl Safe_ports port 777         # multiling http
+   acl CONNECT method CONNECT
+   acl LanDstDM dstdomain .gangpao.com
+
+   http_access allow manager localhost
+   http_access deny manager
+   http_access deny !Safe_ports        #拒绝代理除acl 定义Safe_ports 以外的端口
+   http_access deny CONNECT !SSL_ports
+   http_access allow LanDstDM          #允许访问.gangpao.com域
+   http_access allow LanSrc            #允许源地址为192.168.0.0访问
+   http_access allow LanDst            #允许去往目的地址192.168.0.0
+   http_access allow localnet          #允许内网访问
+   http_access deny all                #拒绝所有
+
+5、初始化及启动squid
+
+   #useradd -s /sbin/nologin squid           #创建squid用户
+   #mkdir -p /usr/local/squid/var/cache      #创建缓存目录
+   #chown -R squid:squid /usr/local/squid/var/cache   #授权给squid
+   #chown -R squid:squid /usr/local/squid/var/logs
+   #vim /etc/hosts
+   
+   192.168.0.201   www.gangpao.com              #绑定hosts文件指定图片服务器ip
+   192.168.0.202   shop.gangpao.com
+   #/usr/local/squid/sbin/squid -zX          #初始化缓存目录
+   #/usr/local/squid/sbin/squid -s           #启动squid
+   #ps aux|grep squid                        #检查squid是否启动，出现下面进程，表示启动成功！
+   root      3437  0.0  0.6   6240   424 ?        Ss   21:42   0:00 /usr/local/squid/sbin/squid -s
+   squid     3439  0.0  9.7  24032  5888 ?        S    21:42   0:01 (squid) -s
+   squid     3440  0.0  0.6   2932   420 ?        S    21:42   0:00 (unlinkd)
+   root      3922  0.0  1.1   3912   676 pts/0    S+   22:40   0:00 grep squid
+
+6、测试
+
+   在客户端绑定hosts域名指向squid服务器
+   #vim /etc/hosts
+   
+   192.168.0.200   www.gangpao.com
+   192.168.0.200   shop.gangpao.com
+   
+   #curl -I http://test1.weike.com/6.jpg
+   HTTP/1.0 200 OK
+   Server: nginx/1.0.4
+   Date: Wed, 20 Jul 2011 13:44:09 GMT
+   Content-Type: image/jpeg
+   Content-Length: 78763
+   Last-Modified: Mon, 18 Jul 2011 17:33:23 GMT
+   Accept-Ranges: bytes
+   Age: 275
+   X-Cache: HIT from localhost              表示缓存命中
+   Via: 1.0 localhost (squid/3.0.STABLE15)
+   Connection: close

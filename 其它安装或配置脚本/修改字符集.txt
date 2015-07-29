@@ -1,0 +1,36 @@
+    [root@localhost sysconfig]# cd /etc/sysconfig/
+
+    [root@localhost sysconfig]# vi i18n 
+
+修改并保存退出（:wq）
+
+    LANG="zh_CN.GBK"
+
+
+重新启动如果系统界面出现乱码，在安装找到
+
+fonts-chinese-3.02-12.el5.noarch.rpm
+
+fonts-ISO8859-2-75dpi-1.0-17.1.noarch.rpm
+
+    [root@localhost bluesea]# rpm -ivh fonts-chinese-3.02-12.el5.noarch.rpm 
+    warning: fonts-chinese-3.02-12.el5.noarch.rpm: Header V3 DSA signature: NOKEY, key ID e8562897
+    Preparing...                ########################################### [100%]
+       1:fonts-chinese          ########################################### [100%]
+    [root@localhost bluesea]# rpm -ivh fonts-ISO8859-2-75dpi-1.0-17.1.noarch.rpm 
+    warning: fonts-ISO8859-2-75dpi-1.0-17.1.noarch.rpm: Header V3 DSA signature: NOKEY, key ID e8562897
+    Preparing...                ########################################### [100%]
+       1:fonts-ISO8859-2-75dpi  ########################################### [100%]
+
+重启 如果还是乱码
+
+进入fonts安装路径
+
+    [root@localhost ~]# cd /usr/share/fonts/
+
+    [root@localhost ~]# fc-cache -fv 
+
+这下重启ok 了
+
+http://www.linuxso.com/linuxpeixun/17023.html
+

@@ -1,0 +1,107 @@
+一、安装cmake 
+# 安装所需依赖包  
+ openssl-devel  gcc-c++
+yum -y install gcc libxml2-dev curl screen \
+libpng12-dev autoconf libpcre3-dev make bzip2 \
+libevent-dev patch libjpeg62-dev libcurl4-openssl-dev \
+libfreetype6-dev  libtool libncurses5-dev psmisc lrzsz ncurses-devel openssl-devel  gcc-c++\
+ 
+# 下载文件
+wget http://www.cmake.org/files/v2.8/cmake-2.8.5.tar.gz
+
+# 编译安装
+tar zxvf cmake-2.8.5.tar.gz
+cd cmake-2.8.5
+./bootstrap
+make
+make install
+cmake --version
+ 
+二、 安装配置mysql
+# 下载源文件
+wget http://dev.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.17.tar.gz/from/ftp://ftp.ntu.edu.tw/pub/MySQL/
+# 或
+wget ftp://ftp.ntu.edu.tw/pub/MySQL/Downloads/MySQL-5.5/mysql-5.5.17.tar.gz
+
+wget ftp://ftp.ntu.edu.tw/pub/MySQL/Downloads/MySQL-5.5/mysql-5.5.27.tar.gz
+ 
+# 创建用户和组
+groupadd mysql
+useradd -g mysql  -s /usr/sbin/nologin  mysql
+ 
+# 创建安装目录
+mkdir  /usr/local/mysql
+ 
+# 创建数据库目录
+mkdir  /usr/local/mysql/data
+
+ 
+# 解压
+tar -zxvf mysql-5.5.17.tar.gz
+cd mysql-5.5.17
+ 
+# 编译及安装mysql
+# cmake编译： 
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local/mysql \
+-DMYSQL_DATADIR=/usr/local/mysql/data \
+-DDEFAULT_CHARSET=utf8 \
+-DDEFAULT_COLLATION=utf8_unicode_ci \
+-DWITH_READLINE=1 \
+-DWITH_SSL=system \
+-DWITH_EMBEDDED_SERVER=1 \
+-DENABLED_LOCAL_INFILE=1 \
+-DDEFAULT_COLLATION=utf8_general_ci \
+-DWITH_MYISAM_STORAGE_ENGINE=1 \
+-DWITH_INNOBASE_STORAGE_ENGINE=1 \
+-DWITH_DEBUG=0    \
+-DWITH_SSH=bundled 
+ 
+# 安装mysql
+make && make install
+ 
+# 复制配置文件
+cp support-files/my-medium.cnf  /etc/my.cnf
+ 
+# 设置权限
+chmod +x /usr/local/mysql
+chown -R mysql.mysql /usr/local/mysql
+chown -R mysql:mysql /usr/local/mysql/data
+ 
+# 配置开机自启动
+cp support-files/mysql.server /etc/init.d/mysqld
+chmod +x /etc/init.d/mysqld
+chkconfig --add mysqld
+chkconfig mysqld on
+ 
+# 修改my.cnf配置
+vim /etc/my.cnf
+# [mysqld] 添加：
+datadir=/usr/local/mysql/data
+default-storage-engine=MyISAM
+ 
+# 以下可选：
+log-error =/usr/local/mysql/data/error.log
+pid-file = /usr/local/mysql/data/mysql.pid
+user = mysql
+tmpdir = /tmp
+ 
+# 初始化数据库
+/usr/local/mysql/scripts/mysql_install_db --user=mysql --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data &
+ 
+# 启动MySQL
+/usr/local/mysql/bin/mysqld_safe –defaults-file=/etc/my.cnf &
+或者：
+/etc/init.d/mysql start （service mysql start）
+ 
+# 测试MySQL是否启动
+# 1）查看是否有进程mysql
+ps -ef | grep mysql
+# 2）查看端口是否运行
+netstat -tnl | grep 3306
+# 3）读取mysql版本信息
+/usr/local/mysql/bin/mysqladmin version
+ 
+# 至此，MySQL安装完成
+
+
+

@@ -1,0 +1,42 @@
+perl   perl-Net-SNMP libmcrypt  pymssql  fping libmcrypt-devel perl-Mail-IMAPClient  php-mcrypt php-mssql           perl(Net::SMTP::TLS   Mail::POP3Client   )
+1、进入/tmp安装目录,官网下载的安装文档只能在/tmp目录下解压安装  
+
+    #cd /tmp 
+
+2、到官网下载最新版本
+
+   http://www.nagios.com/downloadxi/
+
+    #wget http://assets.nagios.com/downloads/nagiosxi/2011/xi-2011r3.1.tar.gz 
+
+ 
+
+3、解压安装
+
+    #tar xzf xi-2011r3.1.tar.gz 
+    #cd nagiosxi 
+    #./fullinstall 
+
+之后会进入安装状态，期间会提示输入数据库root密码
+
+、、、
+
+安装完成后会提示
+
+    Nagios XI Installation Complete! 
+     
+    You can access the Nagios XI web interface by visiting: 
+        http://ip/nagiosxi/ 
+
+4、打开浏览器进入
+
+http://ip/nagiosxi/
+
+   按照向导进行设置
+
+设置完成后默认管理员账号是 
+Username: nagiosadmin 
+Password: nagiosadmin
+ 
+
+http://nagios-cn.sourceforge.net/nagios-cn/index.html
